@@ -3,6 +3,7 @@
 
 let spongeWord = ".." //混淆替换词
 let noSpongeChar = [",","，",".","。","？","?","!","！"] //不予混淆的字符
+let brokenAllowBlock = ["air","supplementaries:book_pile_horizontal","sleep_tight:hammocks","minecraft:crops"] //允许破坏的方块/方块类
 let shoutRadius = [24,32,40] //大声发的收听范围
 let talkRadius = [6,10,14] //普通谈话的收听范围
 let whispRadius = [1,2,3] //耳语的收听范围
@@ -139,6 +140,20 @@ PlayerEvents.tick(event =>{
         let level = event.level
         if (level.isNight()){timeSynsTrigger = false}
     }    
+})
+
+//禁用方块破坏
+
+BlockEvents.broken(event =>{
+    if (!isMajoProgressing){return 0}
+    let player = event.player
+    if (!isMajoPlayer(player)){return 0}
+    let block = event.block
+    for (let allowed of brokenAllowBlock){
+        if (block.id == allowed || block.hasTag(allowed)){return 0}
+    }
+    console.log(block.id)
+    event.cancel()
 })
 
 //规范化字符串

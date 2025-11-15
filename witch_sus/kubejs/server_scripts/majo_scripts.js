@@ -181,7 +181,7 @@ ItemEvents.rightClicked("yuushya:button_sign_play",event =>{
                 let name = player.name.string
                 if (isMajoPlayer(player)){
                     let majo = isMajoPlayer(player)
-                    server.runCommandSilent("/gamemode adventure "+name)
+                    server.runCommandSilent("/gamemode survival "+name)
                     server.runCommandSilent('/hiddennames setName '+name+' name {"text":"'+majo.color+'◆'+majo.name+'"}')
                     player.tell("§2请开始您的表演。")
                     continue
@@ -300,7 +300,7 @@ function majoPlayerPrefix(server,majo){
     let player = majo.player
     let name = player.name.string
     server.runCommandSilent("/attribute "+name+" minecraft:generic.scale base set "+majo.scaleMulti)
-    server.runCommandSilent("/gamemode adventure "+name)
+    server.runCommandSilent("/gamemode survival "+name)
     server.runCommandSilent("/tag "+name+" add majo")
     player.setMaxHealth(majo.maxHealth)
     if (majo.name == "冰上梅露露"){
@@ -330,6 +330,7 @@ function majoPlayerAfterfix(server,majo){
     server.runCommandSilent("/attribute "+name+" minecraft:generic.scale base set 1")
     server.runCommandSilent("/gamemode spectator "+name)
     server.runCommandSilent("/tag "+name+" remove majo")
+    server.runCommandSilent('/hiddennames setName '+name+' reset')
     if (majo.name == "冰上梅露露"){
         server.runCommandSilent("/effect clear "+name+" minecraft:resistance")
         server.runCommandSilent("/effect clear "+name+" minecraft:regeneration")
