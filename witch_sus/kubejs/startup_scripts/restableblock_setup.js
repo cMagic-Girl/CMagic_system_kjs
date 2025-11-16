@@ -1,8 +1,8 @@
 //可用于休息的方块与其舒适度
 
-global.restableBlockList = {'minecraft:hay_block':10,'supplementaries:flax_block':10}
+global.restableBlockList = {'minecraft:hay_block':8,'supplementaries:flax_block':8}
 
-global.restableBlockTagList = {"minecraft:wool":20,"minecraft:beds":20,"sleep_tight:hammocks":20}
+global.restableBlockTagList = {"minecraft:wool":15,"minecraft:beds":15,"sleep_tight:hammocks":15}
 
 //忽略走神事件的方块
 

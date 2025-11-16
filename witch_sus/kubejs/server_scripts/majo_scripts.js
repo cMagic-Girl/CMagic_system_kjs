@@ -10,7 +10,7 @@ let fatigue = null //疲劳计分板
 let pressure = null //压力计分板
 let jump = null //跳跃计分板
 let neededScoreBoard = ["Majo_Progress","Fatigue","Pressure","Jump"] //必要的计分板目录
-let majolizeTimePause = 48000 //每隔该tick增加基础魔女化值
+let majolizeTimePause = 72000 //每隔该tick增加基础魔女化值
 let basicMajolizeSpeed = 100 //基础魔女化值
 let majolizeInformTimePause = 1200 //每隔该tick检查一次魔女化程度
 let emaMajolizeFixTimePause = 1200 //每隔该tick触发一次艾玛的陪伴检定
@@ -473,7 +473,7 @@ function emaMajolizeFix(server){
 
 //场务名单
 
-let operatorList = {"placeHolder":"placeHolder","0yiyu0":"看守","name_means_game":"典狱长"}
+let operatorList = {"placeHolder":"placeHolder","0yiyu0":"看守","name_means_game":"典狱长","NoStay":"月代雪"}
 
 //确认场务
 

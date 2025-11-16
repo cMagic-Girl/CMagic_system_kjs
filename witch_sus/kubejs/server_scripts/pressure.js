@@ -3,10 +3,11 @@
 //精力系统
 let basicPressureSpeed = 2 //基础压力积累速度
 let extraPressure = 200 //交互时的额外精力消耗
-let maxMWPossibility = 0.1 //最大走神可能性
+let maxMWPossibility = 0.2 //最大走神可能性
 let maxDropPossibility = 0.0001 //最大每刻脱手可能性
 let faintMajolize = 1000 //昏迷惩罚
-let faintRecovery = 100 //昏迷时的恢复速度
+let faintRecovery = 50 //昏迷时的恢复速度
+let noPressureCostItem = ["mocai:margo_tarot"] //无须消耗精力互动的物品
 
 //主进程
 
@@ -118,6 +119,10 @@ ItemEvents.rightClicked(event =>{
     if (!isMajoProgressing){return 0}
     let player = event.player
     if (!isMajoPlayer(player)){return 0}
+    let item = event.item
+    for (let noCost of noPressureCostItem){
+        if (item.is(noCost)){return 0}
+    }
     let majo = isMajoPlayer(player)
     let server = event.server
     let pressureScore = server.scoreboard.getOrCreatePlayerScore(majo.scoreHolder,pressure)
@@ -158,8 +163,8 @@ PlayerEvents.tick(event =>{
     let player = event.player
     if (!isMajoPlayer(player)){return 0}
     let item = player.getMainHandItem()
-    if (item.getId() == "minecraft:air"){return 0}
     let majo = isMajoPlayer(player)
+    if (item.getId() == "minecraft:air" || item.is(majo.token)){return 0}
     if (majo.faint){return 0}
     let server = event.server
     let pressureScore = server.scoreboard.getOrCreatePlayerScore(majo.scoreHolder,pressure)

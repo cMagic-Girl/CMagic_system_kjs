@@ -1,8 +1,8 @@
 // priority:3
 //体力系统
 let basicFatigueSpeed = 5 //基础疲劳积累速度
-let basicDeFatigueSpeed = -10 //基础疲劳削减速度
-let exhaustedDeFatigueSpeed = -5 //力竭后疲劳削减速度
+let basicDeFatigueSpeed = -8 //基础疲劳削减速度
+let exhaustedDeFatigueSpeed = -4 //力竭后疲劳削减速度
 let exhaustedPressure = 80000 //力竭压力惩罚
 let waterFatigueSpeed = 5 // 在水中的额外疲劳积累速度
 let jumpMulti = 50 //跳跃的额外疲劳乘数

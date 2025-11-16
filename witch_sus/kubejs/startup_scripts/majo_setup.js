@@ -49,6 +49,11 @@ const hosho_mago = new Majo("宝生玛格",160,"§5","mocai:margo_tarot",50,90)
 const shito_arisa = new Majo("紫藤亚里沙",154,"§4","mocai:arisa_anklet",60,40)
 const hikami_meruru = new Majo("冰上梅露露",158,"§f","mocai:meruru_cross",40,80)
 
+//角色卡的特殊参数
+
+hosho_mago.learnedSound = [hosho_mago]
+hosho_mago.selectedSound = 0
+
 //登记的将生效的角色卡
 
 global.majoList = [sakuraba_ema,nikaido_hiro,sawatari_koko,tachibana_sheri,

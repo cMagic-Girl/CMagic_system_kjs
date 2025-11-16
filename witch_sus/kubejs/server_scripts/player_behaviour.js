@@ -5,8 +5,8 @@ let spongeWord = ".." //混淆替换词
 let noSpongeChar = [",","，",".","。","？","?","!","！"] //不予混淆的字符
 let brokenAllowBlock = ["air","supplementaries:book_pile_horizontal","sleep_tight:hammocks","minecraft:crops"] //允许破坏的方块/方块类
 let shoutRadius = [24,32,40] //大声发的收听范围
-let talkRadius = [6,10,14] //普通谈话的收听范围
-let whispRadius = [1,2,3] //耳语的收听范围
+let talkRadius = [8,12,16] //普通谈话的收听范围
+let whispRadius = [2,3,4] //耳语的收听范围
 
 //禁用掉落物消失
 
@@ -52,9 +52,12 @@ PlayerEvents.chat(event =>{
             if (majo.faint || player.sleeping){message = faintWords[Math.floor(Math.random()*faintWords.length)]}
             for (let receiver of allPlayers){
                 if (isMajoPlayer(receiver)){
-                    console.log("done")
                     let distance = receiver.distanceToEntity(player)
                     let speaker = majo.color+"◆"+majo.name
+                    if (majo.name == '宝生玛格'){
+                        let imitated = majo.learnedSound[majo.selectedSound]
+                        speaker = imitated.color+"◆"+imitated.name
+                    }
                     let radiusSet = []
                     switch (message.charCodeAt(0)){
                         case "#":
@@ -68,18 +71,21 @@ PlayerEvents.chat(event =>{
                             radiusSet = talkRadius
                             break
                     }
-                    console.log(radiusSet)
                     if (majo.faint){radiusSet = whispRadius}
                     if (distance > radiusSet[2]){continue}
                     if (distance > radiusSet[1] && distance <= radiusSet[2]){
                         speaker = "◆未知"
                     }
-                    console.log(distance)
                     receiver.tell(speaker)
                     receiver.tell("  "+messageSponge(messagePrefix(message),Math.max(0,(distance-radiusSet[0])/(radiusSet[1]-radiusSet[0]))))
                 }
                 else {
-                    receiver.tell(majo.color+"◆"+majo.name)
+                    let speaker = majo.color+"◆"+majo.name
+                    if (majo.name == '宝生玛格'){
+                        let imitated = majo.learnedSound[majo.selectedSound]
+                        speaker = imitated.color+"◆"+imitated.name+"§f("+majo.color+"◆"+majo.name+"§f)"
+                    }
+                    receiver.tell(speaker)
                     receiver.tell("  "+messagePrefix(message))
                 }
             }
@@ -133,12 +139,17 @@ PlayerEvents.chat(event =>{
     }
 })
 
-//时间校对
+//时间校对/幕间的角色保护
 
 PlayerEvents.tick(event =>{
     if (timeSynsTrigger){
         let level = event.level
         if (level.isNight()){timeSynsTrigger = false}
+    }
+    if (isMajoProgressing){return 0}
+    let player = event.player
+    if (isMajoPlayer){
+        event.server.runCommandSilent("/effect give "+player.name.string+" minecraft:resistance 2 4 true")
     }    
 })
 
@@ -154,6 +165,8 @@ BlockEvents.broken(event =>{
     }
     event.cancel()
 })
+
+//
 
 //规范化字符串
 
