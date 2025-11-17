@@ -70,6 +70,7 @@ PlayerEvents.tick(event =>{
         fatigueScore.add(Math.ceil(waterFatigueSpeed*majo.fatigueMulti*majo.fatigueMultiFromPressure))
     }
     if (majo.exhausted && !majo.faint){
+        if (fatigueScore.get() > majo.maxFatigue){fatigueScore.set(majo.maxFatigue)}
         fatigueScore.add(Math.ceil(exhaustedDeFatigueSpeed/(majo.fatigueMulti*majo.fatigueMultiFromPressure)))
         server.runCommandSilent("/effect give "+player.name.string+" minecraft:blindness 2 0 true")
         if (fatigueStage < 7){

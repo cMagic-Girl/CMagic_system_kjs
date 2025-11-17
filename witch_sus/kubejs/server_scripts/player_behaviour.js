@@ -7,6 +7,8 @@ let brokenAllowBlock = ["air","supplementaries:book_pile_horizontal","sleep_tigh
 let shoutRadius = [24,32,40] //大声发的收听范围
 let talkRadius = [8,12,16] //普通谈话的收听范围
 let whispRadius = [2,3,4] //耳语的收听范围
+let disableEffectTimePause = 20 //消除禁用效果的间隔
+let nightSpeedMulti = 0.5 //夜晚流逝速度
 
 //禁用掉落物消失
 
@@ -15,6 +17,16 @@ ItemEvents.dropped(event =>{
     if (isMajoPlayer(player)){
         let itemEntity = event.itemEntity
         itemEntity.setNoDespawn()
+    }
+})
+
+//临时禁用一些效果
+ServerEvents.tick(event =>{
+    let server = event.server
+    let time = server.tickCount
+    if (time % disableEffectTimePause == 0){
+        server.runCommandSilent('/effect clear @a kaleidoscope_cookery:flatulence')
+        server.runCommandSilent('/effect clear @a kaleidoscope_cookery:satiated_shield')
     }
 })
 
@@ -58,6 +70,7 @@ PlayerEvents.chat(event =>{
                         let imitated = majo.learnedSound[majo.selectedSound]
                         speaker = imitated.color+"◆"+imitated.name
                     }
+                    if (isMajoPlayer(receiver).faint){continue}
                     let radiusSet = []
                     switch (message.charCodeAt(0)){
                         case "#":
@@ -84,6 +97,9 @@ PlayerEvents.chat(event =>{
                     if (majo.name == '宝生玛格'){
                         let imitated = majo.learnedSound[majo.selectedSound]
                         speaker = imitated.color+"◆"+imitated.name+"§f("+majo.color+"◆"+majo.name+"§f)"
+                        if (imitated.name == '宝生玛格'){
+                            speaker = majo.color+"◆"+majo.name
+                        }
                     }
                     receiver.tell(speaker)
                     receiver.tell("  "+messagePrefix(message))
@@ -148,9 +164,25 @@ PlayerEvents.tick(event =>{
     }
     if (isMajoProgressing){return 0}
     let player = event.player
-    if (isMajoPlayer){
+    if (isMajoPlayer(player)){
         event.server.runCommandSilent("/effect give "+player.name.string+" minecraft:resistance 2 4 true")
     }    
+})
+
+//临时允许夜间时间流动
+
+ServerEvents.tick(event =>{
+    let server = event.server
+    if (!server.getLevel("overworld").isNight()){return 0}
+    let time = server.tickCount
+    if (time % Math.floor(1/nightSpeedMulti) == 0){
+        for (let player of server.playerList.players){
+            if (player.sleeping){
+                server.runCommandSilent("/time add 1")
+                return 1
+            }
+        }
+    }
 })
 
 //禁用方块破坏

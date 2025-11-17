@@ -36,7 +36,7 @@ PlayerEvents.loggedIn(event =>{
         let item = player.inventory.getStackInSlot(i)
         if (item.has("minecraft:custom_data")){
             for (const majo of global.majoList){
-                if (majo.Player == null && item.is(majo.token)){
+                if (!majo.player && item.is(majo.token)){
                     setUpMajo(server,majo,player)
                     console.log(name+" obtain the identity "+majo.name)
                     return true
@@ -268,6 +268,7 @@ function reloadScript(server){
     }
     server.runCommandSilent("/gamerule playersSleepingPercentage 200")
     server.runCommandSilent("/gamerule naturalRegeneration false")
+    server.runCommandSilent("/gamerule doDaylightCycle true")
     majoProgress = server.scoreboard.getObjective('Majo_Progress')
     fatigue = server.scoreboard.getObjective('Fatigue')
     pressure = server.scoreboard.getObjective('Pressure')
@@ -344,7 +345,7 @@ function majolizeProgress(server){
     for (let majo of global.majoList){
         if (majo.player){
             let majoScore = server.scoreboard.getOrCreatePlayerScore(majo.scoreHolder,majoProgress)
-            majoScore.add(basicMajolizeSpeed*majo.majolizeMulti*majo.extraMajolizeMulti)
+            majoScore.add(Math.floor(basicMajolizeSpeed*majo.majolizeMulti*majo.extraMajolizeMulti))
             majo.extraMajolizeMulti += majo.majolizeScore/majo.debris+0.5
         }
     }
