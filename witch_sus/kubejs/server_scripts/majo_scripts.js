@@ -10,16 +10,11 @@ let fatigue = null //疲劳计分板
 let pressure = null //压力计分板
 let jump = null //跳跃计分板
 let neededScoreBoard = ["Majo_Progress","Fatigue","Pressure","Jump"] //必要的计分板目录
+let operatorList = {"placeHolder":"placeHolder","0yiyu0":"看守","name_means_game":"典狱长","NoStay":"月代雪"} //场务名单
 let majolizeTimePause = 72000 //每隔该tick增加基础魔女化值
 let basicMajolizeSpeed = 100 //基础魔女化值
 let majolizeInformTimePause = 100 //每隔该tick检查一次魔女化程度
 let emaMajolizeFixTimePause = 1200 //每隔该tick触发一次艾玛的陪伴检定
-
-let isMajoPlayer = global.isMajoPlayer
-let majoPlayerIs = global.majoPlayerIs
-let vecToArr = global.vecToArr
-let findMajo = global.findMajo
-let findScoreHolder = global.findScoreHolder
 
 //判断登录的玩家是否要赋予身份，如果需要，则赋予
 
@@ -176,6 +171,7 @@ ItemEvents.rightClicked("yuushya:button_sign_play",event =>{
         if (!isMajoProgressing){
             server.runCommandSilent('/tellraw @a {"text":"演出正式开始！魔女化等系统已开始生效。","color":"green"}')
             server.runCommandSilent("/execute as @a at @s run playsound minecraft:block.note_block.harp voice @s")
+            server.runCommandSilent('/gamerule doDaylightCycle true')
             isMajoProgressing = true
             for (let player of server.playerList.players){
                 let name = player.name.string
@@ -212,11 +208,9 @@ ItemEvents.rightClicked("yuushya:button_sign_play",event =>{
             }
             server.runCommandSilent('/tellraw @a {"text":"演出现已暂停！魔女化等系统已停止生效。","color":"yellow"}')
             server.runCommandSilent("/execute as @a at @s run playsound minecraft:block.note_block.harp voice @s")
+            server.runCommandSilent('/gamerule doDaylightCycle false')
             isMajoProgressing = false
-            if (isFocusMode){
-                server.runCommandSilent('/gamerule doDaylightCycle true')
-                isFocusMode = false
-            }
+            isFocusMode = false
         }
     event.player.addItemCooldown("yuushya:button_sign_play",20)
     }
@@ -352,6 +346,7 @@ function majolizeProgress(server){
 }
 
 //魔女化通知与改动
+
 function majolizeInform(server){
     for (let majo of global.majoList){
         if (majo.player){
@@ -469,32 +464,5 @@ function emaMajolizeFix(server){
     }
     else {
         ema.extraMajolizeMulti += 0.01
-    }
-}
-
-//场务名单
-
-let operatorList = {"placeHolder":"placeHolder","0yiyu0":"看守","name_means_game":"典狱长","NoStay":"月代雪"}
-
-//确认场务
-
-function isOperator(player){
-    try{
-        if (typeof player == "string"){
-            for (let op of Object.keys(operatorList)){
-                if (!op.isEmpty){
-                    if (player == op){return true}
-                }
-            }
-            return false
-        }
-    }
-    finally {
-        for (let op of Object.keys(operatorList)){
-            if (!op.isEmpty){
-                if (player.name.string == op){return true}
-            }
-        }
-        return false
     }
 }
