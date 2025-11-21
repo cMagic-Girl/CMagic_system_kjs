@@ -4,12 +4,16 @@
 let isMajoProgressing = false //开关
 let isFocusMode = false //焦点模式开关
 let reloadTrigger = true //检测脚本被重载
+
 let majoProgress = null //魔女化计分板
 let fatigue = null //疲劳计分板
 let pressure = null //压力计分板
 let jump = null //跳跃计分板
-let neededScoreBoard = ["Majo_Progress","Fatigue","Pressure","Jump"] //必要的计分板目录
+let hunger = null //饱食度计分板
+let neededScoreBoard = ["Majo_Progress","Fatigue","Pressure","Jump","Hunger"] //必要的计分板目录
+
 let operatorList = {"placeHolder":"placeHolder","0yiyu0":"看守","name_means_game":"典狱长","NoStay":"月代雪","v_t_4":"典狱长"} //场务名单
+
 let timeSynsTrigger = true //激活按天结算
 let majolizeTimeTrigger = false //按天结算魔女化进度
 let basicMajolizeSpeed = 100 //基础魔女化值
@@ -137,6 +141,7 @@ EntityEvents.death("player",event =>{
     server.scoreboard.getOrCreatePlayerScore(majo.scoreHolder,fatigue).set(0)
     server.scoreboard.getOrCreatePlayerScore(majo.scoreHolder,pressure).set(0)
     server.scoreboard.getOrCreatePlayerScore(majo.scoreHolder,jump).set(0)
+    server.scoreboard.getOrCreatePlayerScore(majo.scoreHolder,hunger).set(0)
 })
 
 //主进程
@@ -266,6 +271,7 @@ function reloadScript(server){
     fatigue = server.scoreboard.getObjective('Fatigue')
     pressure = server.scoreboard.getObjective('Pressure')
     jump = server.scoreboard.getObjective('Jump')
+    hunger = server.scoreboard.getObjective('Hunger')
     reloadTrigger = false
 }
 

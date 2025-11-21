@@ -67,6 +67,7 @@ PlayerEvents.tick(event =>{
     if (player.sprinting && !majo.faint){
         player.setMovementSpeedAddition(totalSpeedMulti)
         fatigueScore.add(Math.ceil(basicFatigueSpeed*majo.fatigueMulti*majo.fatigueMultiFromPressure))
+        majo.extraFoodNeedFromSporting = player.totalMovementSpeed/player.defaultMovementSpeed
         sporting = true
     }
     else {
@@ -74,6 +75,7 @@ PlayerEvents.tick(event =>{
     }
     if (jumpCount.get() > 0 && !majo.faint){
         fatigueScore.add(Math.ceil(basicFatigueSpeed*majo.fatigueMulti*jumpMulti*majo.fatigueMultiFromPressure))
+        majo.extraFoodNeedFromSporting = 1.5*player.totalMovementSpeed/player.defaultMovementSpeed
         jumpCount.set(0)
         sporting = true
     }
@@ -91,6 +93,7 @@ PlayerEvents.tick(event =>{
     }
     if (!sporting && !majo.faint){
         fatigueScore.add(Math.ceil(basicDeFatigueSpeed/(majo.fatigueMulti*majo.fatigueMultiFromPressure)))
+        majo.extraFoodNeedFromSporting = 1
         if (fatigueScore.get() < 0){
             fatigueScore.set(0)
         }

@@ -1,3 +1,5 @@
+// priority:0
+
 //vector3到近似整数数组的变化
 
 function vecToArr(vec3){
