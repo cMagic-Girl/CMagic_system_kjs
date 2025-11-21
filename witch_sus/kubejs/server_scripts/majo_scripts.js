@@ -4,14 +4,14 @@
 let isMajoProgressing = false //开关
 let isFocusMode = false //焦点模式开关
 let reloadTrigger = true //检测脚本被重载
-let timeSynsTrigger = false //检测时间校准
 let majoProgress = null //魔女化计分板
 let fatigue = null //疲劳计分板
 let pressure = null //压力计分板
 let jump = null //跳跃计分板
 let neededScoreBoard = ["Majo_Progress","Fatigue","Pressure","Jump"] //必要的计分板目录
 let operatorList = {"placeHolder":"placeHolder","0yiyu0":"看守","name_means_game":"典狱长","NoStay":"月代雪","v_t_4":"典狱长"} //场务名单
-let majolizeTimePause = 72000 //每隔该tick增加基础魔女化值
+let timeSynsTrigger = true //激活按天结算
+let majolizeTimeTrigger = false //按天结算魔女化进度
 let basicMajolizeSpeed = 100 //基础魔女化值
 let majolizeInformTimePause = 100 //每隔该tick检查一次魔女化程度
 let emaMajolizeFixTimePause = 1200 //每隔该tick触发一次艾玛的陪伴检定
@@ -151,10 +151,10 @@ ServerEvents.tick(event =>{
     if (time % majolizeInformTimePause == 0){
         majolizeInform(server)
     }
-    if (timeSynsTrigger){return 0}
     if (isFocusMode){return 0}
-    if (time % majolizeTimePause == 0){
+    if (majolizeTimeTrigger){
         majolizeProgress(server)
+        majolizeTimeTrigger = false
     }
     if (time % emaMajolizeFixTimePause == 0){
         emaMajolizeFix(server)
@@ -233,7 +233,6 @@ ItemEvents.rightClicked("yuushya:button_sign_bookmark",event =>{
                 server.runCommandSilent("/execute as @a at @s run playsound minecraft:block.note_block.bell voice @s")
                 server.runCommandSilent('/gamerule doDaylightCycle false')
                 isFocusMode = true
-                timeSynsTrigger = true
             }
             else {
                 server.runCommandSilent('/tellraw @a {"text":"焦点模式已停用，长周期系统已恢复生效。","color":"yellow"}')
@@ -365,7 +364,7 @@ function majolizeInform(server){
             let debris = majo.debris
             server.runCommandSilent("/effect clear "+name+" mocai:witchfication")
             if(newStage > 0 && newStage < 5){server.runCommandSilent("/effect give "+name+" mocai:witchfication infinite "+(newStage-1)+" true")}
-            else {server.runCommandSilent("/effect give "+name+" mocai:witchfication infinite 4 false")}
+            if(newStage > 4) {server.runCommandSilent("/effect give "+name+" mocai:witchfication infinite 4 false")}
             majo.majolizeScore = newScore
             if (newScore > debris){
                 server.runCommandSilent("/damage "+name+" 9999 magic")

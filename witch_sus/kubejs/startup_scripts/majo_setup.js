@@ -33,6 +33,7 @@ function Majo(name,height,color,token,physique,mentality){
     this.scoreHolder = null
     this.selectedSlot = null
     this.beCarried = false
+    this.shadering = false
 }
 
 //角色卡

@@ -5,7 +5,7 @@ let meruruMahoCost = 10000 //梅露露魔法的精力消耗
 let meruruMahoBenefit = 1 //梅露露魔法提供的魔女化乘子减免
 let hannaMahoCost = 20 //汉娜魔法的体力消耗
 let hannaMahoTimePause = 6 //调整汉娜的漂浮速率
-let reloadTimePause = 72000 //魔法步枪的装弹时间
+let mahoRifleReloadTimeTrigger = false //按天为魔法步枪恢复弹药
 
 //梅露露的魔法
 ItemEvents.entityInteracted("mocai:meruru_cross",event =>{
@@ -35,7 +35,6 @@ ItemEvents.entityInteracted("mocai:meruru_cross",event =>{
 PlayerEvents.tick(event =>{
     if (!isMajoProgressing){return 0}
     let player = event.player
-    let time = event.server.tickCount
     for (let i = 0;i<player.inventory.slots;i++){
         let item = player.inventory.getStackInSlot(i)
         if (item.is("tacz:modern_kinetic_gun")){
@@ -43,9 +42,10 @@ PlayerEvents.tick(event =>{
                 let ammoCount = item.customData.getInt("GunCurrentAmmoCount")
                 let barrelAmmo = item.customData.getInt("HasBulletInBarrel")
                 if ((ammoCount > 4 && barrelAmmo == 1) || (ammoCount > 5 && barrelAmmo == 0)){return 0}
-                if (time % reloadTimePause != 0){return 0}
+                if (!mahoRifleReloadTimeTrigger){return 0}
                 let newItem = 'tacz:modern_kinetic_gun[custom_data={GunCurrentAmmoCount:'+(ammoCount+1)+',GunFireMode:'+item.customData.getString("GunFireMode")+',GunId:'+item.customData.get("GunId")+',HasBulletInBarrel:'+item.customData.get("HasBulletInBarrel")+',maho:1b}]'
                 player.inventory.setStackInSlot(i,newItem)
+                mahoRifleReloadTimeTrigger = false
             }
         }
     }    
@@ -149,12 +149,14 @@ PlayerEvents.tick(event =>{
     }
 })
 
+//漂浮
 PlayerEvents.tick(event =>{
     if (!isMajoProgressing){return 0}
     let player = event.player
     if (!isMajoPlayer(player)){return 0}
     let majo = isMajoPlayer(player)
     if (majo.name != "远野汉娜"){return 0}
+    if (player.sleeping){return 0}
     if (majo.flying && !majo.exhausted){
         let server = event.server
         let level = event.level
@@ -167,6 +169,7 @@ PlayerEvents.tick(event =>{
         if (player.shiftKeyDown){
             player.potionEffects.add("minecraft:levitation",20,0,false,false)
         }
+        if (player.mainSupportingBlockPos.isPresent()){return 0}
         let fatigueScore = server.scoreboard.getOrCreatePlayerScore(majo.scoreHolder,fatigue)
         fatigueScore.add(hannaMahoCost*majo.fatigueMulti*majo.fatigueMultiFromPressure)
     }

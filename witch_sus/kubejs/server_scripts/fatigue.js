@@ -6,6 +6,7 @@ let exhaustedDeFatigueSpeed = -4 //力竭后疲劳削减速度
 let exhaustedPressure = 80000 //力竭压力惩罚
 let waterFatigueSpeed = 5 // 在水中的额外疲劳积累速度
 let jumpMulti = 50 //跳跃的额外疲劳乘数
+let fatigueShaderTimePause = 20 //疲劳视野遮罩的间歇
 
 //主进程
 
@@ -47,9 +48,19 @@ PlayerEvents.tick(event =>{
         majo.exhausted = true
     }
     if (fatigueStage > 3){
-        totalSpeedMulti = majo.speedMulti*(2-1/(2*(1-fatigueScore.get()/(majo.maxFatigue+1200))))-3*(Math.max(0.01,majo.fatigueMultiFromPressure/100)-0.01)
+        totalSpeedMulti = majo.speedMulti*(2-1/(2*(1-fatigueScore.get()/(majo.maxFatigue+600))))-3*(Math.max(0.01,majo.fatigueMultiFromPressure/100)-0.01)
         if (majo.exhausted){
             totalSpeedMulti -= 100
+        }
+    }
+    if (fatigueStage > 6){
+        if(!majo.shadering){
+            server.runCommandSilent("/shader apply "+player.name.string+" minecraft:shaders/post/blur.json")
+            majo.shadering = true
+            server.scheduleInTicks(fatigueShaderTimePause,event =>{
+                server.runCommandSilent("/shader remove "+player.name.string)
+                majo.shadering = false
+            })
         }
     }
     let sporting = false

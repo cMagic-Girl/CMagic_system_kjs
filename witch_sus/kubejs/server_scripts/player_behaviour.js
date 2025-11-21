@@ -3,7 +3,6 @@
 
 let spongeWord = ".." //混淆替换词
 let noSpongeChar = [",","，",".","。","？","?","!","！"] //不予混淆的字符
-let brokenAllowBlock = ["air","supplementaries:book_pile_horizontal","sleep_tight:hammocks","minecraft:crops"] //允许破坏的方块/方块类
 let shoutRadius = [35,40,45] //大声发的收听范围
 let talkRadius = [8,12,16] //普通谈话的收听范围
 let whispRadius = [2,3,4] //耳语的收听范围
@@ -119,7 +118,7 @@ PlayerEvents.chat(event =>{
                     if (distance > radiusSet[1] && distance <= radiusSet[2]){
                         speaker = "◆未知"
                     }
-                    if (distance <= radiusSet[0]&& (distance > 0.01 || isMajoPlayer(receiver).name == "夏目安安") && ananOrder){
+                    if (distance <= radiusSet[0] && (distance > 0.1 || messagePrefix(message).includes(isMajoPlayer(receiver).name)) && ananOrder){
                         if (messagePrefix(message).includes(isMajoPlayer(receiver).name)){
                             ananOrderReceived.push(isMajoPlayer(receiver))
                             message = replaceFirstOccurrence(message,isMajoPlayer(receiver).name,'')
@@ -154,7 +153,7 @@ PlayerEvents.chat(event =>{
                 }
             }
             if (ananOrder){
-                if (!ananOrderReceived){
+                if (!ananOrderReceived.length){
                     for (let receiver of global.majoList){
                         if (receiver.player){
                             if (receiver.player.distanceToEntity(player) <= ananOrderRadius && receiver.player.name.string != "夏目安安"){
@@ -163,7 +162,7 @@ PlayerEvents.chat(event =>{
                         }
                     }
                 }
-                if (!ananOrderReceived){event.cancel()}
+                if (!ananOrderReceived.length){event.cancel()}
                 let order = messagePrefix(message)
                 order = String(order)
                 order = order.slice(0,0)+"【"+order.slice(1)
@@ -175,10 +174,12 @@ PlayerEvents.chat(event =>{
                         orderReceiver.player.tell("  "+order)
                         orderReceiver.player.potionEffects.add("minecraft:nausea",140,0,false,false)
                         server.runCommandSilent("/shader apply "+receiverName+" exposure:shaders/post/light_blue_tint.json")
+                        orderReceiver.shadering = true
                         server.runCommandSilent('/title '+receiverName+' title {"text":"'+majo.color+order+'"}')
                         server.runCommandSilent("/execute as "+receiverName+" at @s run playsound minecraft:entity.wither.spawn ambient @s ~ ~ ~ 1 2")
                         server.scheduleInTicks(100,event =>{
                             server.runCommandSilent("/shader remove "+receiverName)
+                            orderReceiver.shadering = false
                         })
                     }
                 }
@@ -288,9 +289,18 @@ PlayerEvents.chat(event =>{
 //时间校对/幕间的角色保护
 
 PlayerEvents.tick(event =>{
+    let level = event.level
+    if (!timeSynsTrigger){
+        if (level.night){
+            timeSynsTrigger = true
+            majolizeTimeTrigger = true
+            mahoRifleReloadTimeTrigger = true
+        }
+    }
     if (timeSynsTrigger){
-        let level = event.level
-        if (level.isNight()){timeSynsTrigger = false}
+        if (!level.night){
+            timeSynsTrigger = false
+        }
     }
     if (isMajoProgressing){return 0}
     let player = event.player
@@ -302,6 +312,8 @@ PlayerEvents.tick(event =>{
 //临时允许夜间时间流动
 
 ServerEvents.tick(event =>{
+    if (!isMajoProgressing){return 0}
+    if (isFocusMode){return 0}
     let server = event.server
     if (!server.getLevel("overworld").isNight()){return 0}
     let time = server.tickCount
@@ -322,7 +334,7 @@ BlockEvents.broken(event =>{
     let player = event.player
     if (!isMajoPlayer(player)){return 0}
     let block = event.block
-    for (let allowed of brokenAllowBlock){
+    for (let allowed of global.breakableBlockList){
         if (block.id == allowed || block.hasTag(allowed)){return 0}
     }
     event.cancel()
