@@ -8,7 +8,7 @@ function Operator(username,name){
 
 //场务
 
-const tsukishiro_yuki = new Operator("PLTaube","月代雪")
+const tsukishiro_yuki = new Operator("NoStay","月代雪")
 const owl_1 = new Operator("name_means_game","典狱长")
 const owl_2 = new Operator("v_t_4","典狱长")
 const guard = new Operator("0yiyu0","看守")

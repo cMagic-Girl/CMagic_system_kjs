@@ -444,6 +444,7 @@ function emaMajolizeFix(server){
     let oldScore = score.get()
     for (let player of server.playerList.players){
         if (!isMajoPlayer(player)){continue}
+        if (isMajoPlayer(player).name == "樱羽艾玛"){continue}
         let distance = player.distanceToEntity(ema.player)
         if (distance > 5){continue}
         let majo = isMajoPlayer(player)

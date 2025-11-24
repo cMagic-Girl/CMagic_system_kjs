@@ -31,6 +31,9 @@ PlayerEvents.tick(event =>{
             if (pressureScore.get() < 0){
                 pressureScore.set(0)
             }
+            if (majo.majolizeFromFaint > 0){
+                majo.majolizeFromFaint = majo.majolizeFromFaint-0.025*global.restableBlockList[restableBlock]
+            }
             return 1
         }
     }
@@ -43,6 +46,9 @@ PlayerEvents.tick(event =>{
             }
             if (pressureScore.get() < 0){
                 pressureScore.set(0)
+            }
+            if (majo.majolizeFromFaint > 0){
+                majo.majolizeFromFaint = majo.majolizeFromFaint-0.025*global.restableBlockTagList[restableBlockTag]
             }
             return 1
         }

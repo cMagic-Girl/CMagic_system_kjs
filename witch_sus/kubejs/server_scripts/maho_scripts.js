@@ -32,7 +32,7 @@ ItemEvents.entityInteracted("mocai:meruru_cross",event =>{
 })
 
 //涂了特雷德基姆的武器
-EntityEvents.beforeHurt(event =>{
+EntityEvents.afterHurt(event =>{
     if (!isMajoProgressing){return 0}
     if (!event.source.player){return 0}
     if (event.source.weaponItem == "air"){return 0}

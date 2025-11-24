@@ -32,6 +32,7 @@ function Majo(name,height,color,token,physique,mentality){
     this.debris = 13000+40*mentality
     this.majolizeScore = 0
     this.extraMajolizeMulti = 1
+    this.majolizeFromFaint = 0
 
     this.scoreHolder = null
     this.selectedSlot = null

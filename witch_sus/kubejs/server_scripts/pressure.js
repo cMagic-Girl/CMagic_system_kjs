@@ -46,6 +46,7 @@ PlayerEvents.tick(event =>{
         }
         if (pressureScore.get() == 0){
             server.runCommandSilent("/ysm play "+player.name.string+" empty")
+            server.scoreboard.getOrCreatePlayerScore(majo.scoreHolder,majoProgress).add(Math.round(majo.majolizeFromFaint))
             majo.fatigueMultiFromPressure = 1
             majo.faint = false
         }
@@ -57,7 +58,7 @@ PlayerEvents.tick(event =>{
         majo.faint = true
         player.tell("§4你累得昏过去了……")
         server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound minecraft:block.beacon.deactivate voice @s ~ ~ ~ 1 0.1")
-        server.scoreboard.getOrCreatePlayerScore(majo.scoreHolder,majoProgress).add(faintMajolize*majo.majolizeMulti*majo.extraMajolizeMulti)
+        majo.majolizeFromFaint += Math.round(faintMajolize*majo.majolizeMulti*majo.extraMajolizeMulti)
         majo.fatigueMultiFromPressure = 10000
         majo.selectedSlot = player.selectedSlot
         majo.pos = vecToArr(player.position())
@@ -91,7 +92,7 @@ PlayerEvents.tick(event =>{
         majo.faint = true
         player.tell("§4你累得昏过去了……")
         server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound minecraft:block.beacon.deactivate voice @s ~ ~ ~ 1 0.1")
-        server.scoreboard.getOrCreatePlayerScore(majo.scoreHolder,majoProgress).add(faintMajolize*majo.majolizeMulti*majo.extraMajolizeMulti)
+        majo.majolizeFromFaint += Math.round(faintMajolize*majo.majolizeMulti*majo.extraMajolizeMulti)
         majo.fatigueMultiFromPressure = 10000
         majo.selectedSlot = player.selectedSlot
         majo.pos = vecToArr(player.position())
