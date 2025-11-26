@@ -12,11 +12,16 @@ let localRadius = shoutRadius[2] //本地听取的收听范围
 let disableEffectTimePause = 20 //消除禁用效果的间隔
 let nightSpeedMulti = 0.5 //夜晚流逝速度
 
-//禁用掉落物消失
+//禁用掉落物消失且禁用丢出特殊物品
 
 ItemEvents.dropped(event =>{
     let player = event.player
+    let item = event.item
     if (isMajoPlayer(player)){
+        if (item.id.includes('yuushya:button_sign')){
+            player.addItem(item)
+            event.cancel()
+        }
         let itemEntity = event.itemEntity
         itemEntity.setNoDespawn()
     }
@@ -61,6 +66,7 @@ PlayerEvents.chat(event =>{
         event.cancel()
     }
     else {
+        if (isJudging){return 0}
         if (isMajoPlayer(player)){
             let majo = isMajoPlayer(player)
             let ananOrder = false
@@ -364,6 +370,58 @@ PlayerEvents.tick(event =>{
         if (!majo.carrior.carryOnData.isCarrying("player")){
             majo.carrior = null
         }
+    }
+})
+
+//搬运尸体时不产生掉落物
+
+let corpseInventoryTemp = {}
+
+NativeEvents.onEvent($EntityPickupEvent,event =>{
+    if (event.target.type == "corpse:corpse"){
+        let nbt = event.target.nbt
+        corpseInventoryTemp[nbt["Death"]["PlayerName"]] = nbt["Death"]["MainInventory"]
+        nbt["Death"]["MainInventory"] = []
+        event.target.setNbt(nbt)
+    }
+})
+
+EntityEvents.spawned("corpse:corpse",event =>{
+    if (!Object.keys(corpseInventoryTemp).length){return 0}
+    let nbt = event.entity.nbt
+    if (corpseInventoryTemp[nbt["Death"]["PlayerName"]]){
+        nbt["Death"]["MainInventory"] = corpseInventoryTemp[nbt["Death"]["PlayerName"]]
+        event.entity.setNbt(nbt)
+        delete corpseInventoryTemp[nbt["Death"]["PlayerName"]]
+    }
+})
+
+//不允许放置功能按钮
+
+BlockEvents.rightClicked(event =>{
+    let item = event.item
+    if (item.id.includes('yuushya:button_sign')){
+        let player = event.player
+        let server = event.server
+        let newItem = item.copy()
+        if (player.getMainHandItem().id == item.id){
+            server.scheduleInTicks(1,event =>{
+                player.setMainHandItem(newItem)
+            })
+        }
+        if (player.getOffHandItem().id == item.id){
+            server.scheduleInTicks(1,event =>{
+                player.setOffHandItem(newItem)
+            })
+        }
+    }
+})
+
+BlockEvents.placed(event =>{
+    let block = event.block
+    let level = event.level
+    if (block.id.toString().includes('yuushya:button_sign')){
+        level.removeBlock(block.pos,false)
     }
 })
 

@@ -46,13 +46,13 @@ PlayerEvents.loggedIn(event =>{
         if (isMajoProgressing){
             server.runCommandSilent('/hiddennames setName '+name+' name {"text":"◆'+isOperator(player).name+'"}')
             server.runCommandSilent("/gamemode spectator "+name)
-            player.tell("§2演出已经正式开始了。您已被转为观察者模式。")
+            player.tell({"text":"演出已经开场了，您已被转换为观察者模式。","color":"green"})
             return true
         }
     }
     if (isMajoProgressing){
         server.runCommandSilent("/gamemode spectator "+name)
-        player.tell("§2演出已经正式开始了。您已被转为观察者模式并限制了发言频道。")
+        player.tell({"text":"演出已经开场了，您已被转换为观察者模式并限制了发言频道。","color":"green"})
         return true
     }
 })
@@ -170,9 +170,9 @@ ServerEvents.tick(event =>{
 ItemEvents.rightClicked("yuushya:button_sign_play",event =>{
     let item = event.item
     let server = event.server
-    if (item.has("minecraft:custom_data")){
+    if (item.customData.getBoolean("OperatorTool")){
         if (!isMajoProgressing){
-            server.runCommandSilent('/tellraw @a {"text":"演出正式开始！魔女化等系统已开始生效。","color":"green"}')
+            server.runCommandSilent('/title @a title {"text":"❀演出开场❀","color":"light_purple","bold":true}')
             server.runCommandSilent("/execute as @a at @s run playsound minecraft:block.note_block.harp voice @s")
             server.runCommandSilent('/gamerule doDaylightCycle true')
             isMajoProgressing = true
@@ -182,17 +182,17 @@ ItemEvents.rightClicked("yuushya:button_sign_play",event =>{
                     let majo = isMajoPlayer(player)
                     server.runCommandSilent("/gamemode survival "+name)
                     server.runCommandSilent('/hiddennames setName '+name+' name {"text":"'+majo.color+'◆'+majo.name+'"}')
-                    player.tell("§2请开始您的表演。")
+                    player.tell({"text":"请开始您的表演。","color":"green"})
                     continue
                 }
                 if (isOperator(player)){
                     server.runCommandSilent('/hiddennames setName '+name+' name {"text":"◆'+isOperator(player).name+'"}')
-                    player.tell("§2请开始您的场务工作。")
+                    player.tell({"text":"请开始您的场务工作。","color":"green"})
                     continue
                 }
                 else {
                     server.runCommandSilent("/gamemode spectator "+name)
-                    player.tell("§2您已被转换为观察者模式并限制了发言频道。")
+                    player.tell({"text":"您已被转换为观察者模式并限制了发言频道。","color":"green"})
                 }
             }
         }
@@ -209,11 +209,12 @@ ItemEvents.rightClicked("yuushya:button_sign_play",event =>{
                     continue
                 }
             }
-            server.runCommandSilent('/tellraw @a {"text":"演出现已暂停！魔女化等系统已停止生效。","color":"yellow"}')
+            server.runCommandSilent('/title @a title {"text":"❀演出落幕❀","color":"green","bold":true}')
             server.runCommandSilent("/execute as @a at @s run playsound minecraft:block.note_block.harp voice @s")
             server.runCommandSilent('/gamerule doDaylightCycle false')
             isMajoProgressing = false
             isFocusMode = false
+            isJudging = false
         }
     event.player.addItemCooldown("yuushya:button_sign_play",20)
     }
@@ -225,21 +226,27 @@ ItemEvents.rightClicked("yuushya:button_sign_bookmark",event =>{
     let item = event.item
     let server = event.server
     let player = event.player
-    if (item.has("minecraft:custom_data")){
+    if (item.customData.getBoolean("OperatorTool")){
         if (!isMajoProgressing){
             server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound minecraft:block.note_block.bass voice @s")
-            player.tell("§e演出还未开始，无法启用焦点模式。")
+            player.tell({"text":"演出还未开始，无法启用焦点模式。","color":"yellow"})
         }
         else {
+            if (isJudging){
+                server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound minecraft:block.note_block.bass voice @s")
+                player.tell({"text":"审判正在进行，无法切换焦点模式。","color":"yellow"})
+                event.player.addItemCooldown("yuushya:button_sign_bookmark",20)
+                return 0
+            }
             if (!isFocusMode){
-                server.runCommandSilent('/tellraw @a {"text":"焦点模式已启用，长周期系统已暂停生效。","color":"green"}')
-                server.runCommandSilent("/execute as @a at @s run playsound minecraft:block.note_block.bell voice @s")
+                player.tell({"text":"焦点模式已启用，长周期系统已暂停生效。","color":"green"})
+                server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound minecraft:block.note_block.bell voice @s")
                 server.runCommandSilent('/gamerule doDaylightCycle false')
                 isFocusMode = true
             }
             else {
-                server.runCommandSilent('/tellraw @a {"text":"焦点模式已停用，长周期系统已恢复生效。","color":"yellow"}')
-                server.runCommandSilent("/execute as @a at @s run playsound minecraft:block.note_block.bell voice @s")
+                player.tell({"text":"焦点模式已停用，长周期系统已恢复生效。","color":"yellow"})
+                server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound minecraft:block.note_block.bell voice @s")
                 server.runCommandSilent('/gamerule doDaylightCycle true')
                 isFocusMode = false
             }
@@ -289,7 +296,7 @@ function setUpMajo(server,majo,player){
     server.runCommandSilent('/hiddennames setName '+name+' name {"text":"'+name+majo.color+'◆'+majo.name+'"}')
     if (isMajoProgressing){
         server.runCommandSilent('/hiddennames setName '+name+' name {"text":"'+majo.color+'◆'+majo.name+'"}')
-        player.tell("§2演出已经正式开始了。请继续您的表演。")
+        player.tell({"text":"演出已经开场了，请继续您的表演。","color":"green"})
     }
 }
 

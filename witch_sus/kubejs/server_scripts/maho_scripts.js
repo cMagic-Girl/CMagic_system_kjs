@@ -37,7 +37,7 @@ EntityEvents.afterHurt(event =>{
     if (!event.source.player){return 0}
     if (event.source.weaponItem == "air"){return 0}
     if (event.entity.potionEffects.isActive("mocai:witchfication") && event.source.weaponItem.customData.getBoolean("tredecim")){
-        event.entity.setHealth(0)
+        event.entity.kill()
     }
 })
 
