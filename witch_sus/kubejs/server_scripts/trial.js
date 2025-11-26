@@ -178,6 +178,7 @@ ItemEvents.rightClicked('yuushya:button_sign_question',event =>{
 //结束发言
 ItemEvents.rightClicked("yuushya:button_sign_play",event =>{
     if (!isJudging){return 0}
+    if (!participantsSyns){return 0}
     let item = event.item
     let player = event.player
     if (!isMajoPlayer(player)){return 0}
@@ -211,6 +212,7 @@ ItemEvents.rightClicked("yuushya:button_sign_play",event =>{
 //赞同
 ItemEvents.rightClicked("yuushya:button_sign_like",event =>{
     if (!isJudging){return 0}
+    if (!participantsSyns){return 0}
     let item = event.item
     let player = event.player
     if (!isMajoPlayer(player)){return 0}
@@ -241,6 +243,7 @@ ItemEvents.rightClicked("yuushya:button_sign_like",event =>{
 //反对
 ItemEvents.rightClicked("yuushya:button_sign_dislike",event =>{
     if (!isJudging){return 0}
+    if (!participantsSyns){return 0}
     let item = event.item
     let player = event.player
     if (!isMajoPlayer(player)){return 0}
@@ -271,6 +274,7 @@ ItemEvents.rightClicked("yuushya:button_sign_dislike",event =>{
 //打断
 ItemEvents.rightClicked("yuushya:button_sign_notice",event =>{
     if (!isJudging){return 0}
+    if (!participantsSyns){return 0}
     let item = event.item
     let player = event.player
     if (!isMajoPlayer(player)){return 0}
@@ -312,6 +316,7 @@ ItemEvents.rightClicked("yuushya:button_sign_notice",event =>{
 //准备与邀请
 ItemEvents.rightClicked("yuushya:button_sign_bookmark",event =>{
     if (!isJudging){return 0}
+    if (!participantsSyns){return 0}
     let item = event.item
     let player = event.player
     if (!isMajoPlayer(player)){return 0}
@@ -500,6 +505,7 @@ PlayerEvents.tick(event =>{
 //计票
 ServerEvents.tick(event =>{
     if (!isJudging){return 0}
+    if (!participantsSyns){return 0}
     let approveTemp = 0
     let disapproveTemp = 0
     for (let majo of global.majoList){
@@ -527,6 +533,7 @@ let voteSitu = null
 
 ServerEvents.tick(event =>{
     if (!isJudging){return 0}
+    if (!participantsSyns){return 0}
     speaker = displayCurrentSpeecher()
     nextSpeaker = displayNextSpeecher()
     let roundTime = tickToTime(setRoundTime-currentRoundTime)
@@ -553,6 +560,10 @@ PlayerEvents.tick(event =>{
         if (player.getMainHandItem().is(majo.token) || player.getOffHandItem().is(majo.token)){
             return 0
         }
+    }
+    if (!participantsSyns){
+        server.runCommandSilent('/title '+player.name.string+' actionbar {"text":"等待离席人员..."}')
+        return 0
     }
     server.runCommandSilent('/title '+player.name.string+' actionbar {"text":"「轮次」'+currentTrialRound+'/'+setMaxTrialRounds+
         ' '+roundTimeMin+':'+roundTimeSec+'「观点」'+voteSitu+'「当前」'+speaker+' '+speakTimeMin+':'+speakTimeSec+'「后续」'+nextSpeaker+
@@ -673,6 +684,10 @@ PlayerEvents.chat(event =>{
     let allPlayers = server.playerList.players
     if (isMajoPlayer(player)){
         let majo = isMajoPlayer(player)
+        if (!participantsSyns){
+            player.tell("§e在离席人员归位之前无法发言。")
+            event.cancel()
+        }
         let maySpeech = false
         if (currentSpeecherForced.length){
             if (currentSpeecherForced[0] == "OPEN"){
