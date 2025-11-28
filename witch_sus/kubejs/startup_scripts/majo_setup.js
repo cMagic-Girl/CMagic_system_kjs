@@ -64,6 +64,8 @@ hosho_mago.selectedSound = 0
 
 tono_hanna.flying = false
 
+shito_arisa.ignite = false
+
 hikami_meruru.majolizeMulti = 0
 tachibana_sheri.majolizeMulti = 0
 

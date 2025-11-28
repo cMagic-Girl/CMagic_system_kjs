@@ -5,7 +5,10 @@ let meruruMahoCost = 10000 //梅露露魔法的精力消耗
 let meruruMahoBenefit = 5 //梅露露魔法提供的魔女化乘子减免
 let hannaMahoCost = 20 //汉娜魔法的体力消耗
 let hannaMahoTimePause = 6 //调整汉娜的漂浮速率
+let defaultArisaFireAmbient = 0.001
+let arisaFireAmbient = 0.001 //亚里沙火焰燃烧音效的频率
 let mahoRifleReloadTimeTrigger = false //按天为魔法步枪恢复弹药
+let arisaIgnitable = ["minecraft:bookshelf_books",'minecraft:paper'] //亚里沙可以点燃的物品tag或物品
 
 //梅露露的魔法
 ItemEvents.entityInteracted("mocai:meruru_cross",event =>{
@@ -192,11 +195,195 @@ PlayerEvents.tick(event =>{
 
 //亚里沙的魔法
 //点燃
-/*ItemEvents.rightClicked("minecraft:air",event=>{
+ItemEvents.firstLeftClicked("minecraft:air",event=>{
     if (!isMajoProgressing){return 0}
     let player = event.player
     if (!isMajoPlayer(player)){return 0}
     let majo = isMajoPlayer(player)
     if (majo.name != "紫藤亚里沙"){return 0}
-    player.inventoryMenu.clicked
-})*/
+    if (majo.ignite){return 0}
+    let server = event.server
+    if (player.getMainHandItem().is("air") && player.shiftKeyDown){
+        server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound minecraft:item.flintandsteel.use voice @a ~ ~ ~ 0.5 1")
+        player.setMainHandItem("mocai:arisa_fire")
+        majo.ignite = true
+    }
+})
+
+PlayerEvents.tick(event =>{
+    let player = event.player
+    if (!isMajoPlayer(player)){return 0}
+    let majo = isMajoPlayer(player)
+    if (majo.name != "紫藤亚里沙"){return 0}
+    let server = event.server
+    if (majo.ignite){
+        if (Math.random() < arisaFireAmbient){
+            server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound minecraft:block.fire.ambient voice @a")
+            arisaFireAmbient = defaultArisaFireAmbient
+        }
+        else (
+            arisaFireAmbient += 0.001
+        )
+    }
+})
+
+//物品管制
+PlayerEvents.tick(event =>{
+    let player = event.player
+    if (!isMajoPlayer(player)){return 0}
+    let majo = isMajoPlayer(player)
+    if (majo.name != "紫藤亚里沙"){return 0}
+    let server = event.server
+    if (majo.ignite){
+        if (!player.getMainHandItem().is("mocai:arisa_fire")){
+            for (let i=0;i<player.inventory.slots;i++){
+                let item = player.inventory.getStackInSlot(i)
+                if (item.is("mocai:arisa_fire")){
+                    player.inventory.setStackInSlot(i,"air")
+                    server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound minecraft:block.fire.extinguish voice @a ~ ~ ~ 0.2 2")
+                    majo.ignite = false
+                    return 1
+                }
+            }
+        }
+    }
+})
+
+PlayerEvents.inventoryOpened(event =>{
+    let player = event.player
+    if (!isMajoPlayer(player)){return 0}
+    let majo = isMajoPlayer(player)
+    if (majo.name != "紫藤亚里沙"){return 0}
+    let server = event.server
+    if (majo.ignite){
+        if (player.getMainHandItem().is("mocai:arisa_fire")){
+            player.setMainHandItem("air")
+            server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound minecraft:block.fire.extinguish voice @a ~ ~ ~ 0.2 2")
+            majo.ignite = false
+            return 1
+        }
+    }
+})
+
+ItemEvents.dropped("mocai:arisa_fire",event =>{
+    let player = event.player
+    let server = event.server
+    server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound minecraft:block.fire.extinguish voice @a ~ ~ ~ 0.2 2")
+    if (isMajoPlayer(player)){
+        let majo = isMajoPlayer(player)
+        if (majo.name == "紫藤亚里沙"){
+            majo.ignite = false
+            event.cancel()
+        }
+    }
+})
+
+ItemEvents.firstLeftClicked("mocai:arisa_fire",event =>{
+    let player = event.player
+    let server = event.server
+    server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound minecraft:block.fire.extinguish voice @a ~ ~ ~ 0.2 2")
+    if (player.getMainHandItem().is("mocai:arisa_fire")){
+        player.setMainHandItem("air")
+    }
+    if (isMajoPlayer(player)){
+        let majo = isMajoPlayer(player)
+        if (majo.name == "紫藤亚里沙"){
+            majo.ignite = false
+        }
+    }
+})
+
+//点燃实体
+ItemEvents.entityInteracted("mocai:arisa_fire",event =>{
+    let server = event.server
+    event.target.setRemainingFireTicks(100)
+    server.runCommandSilent("/execute as "+event.player.name.string+" at @s run playsound minecraft:block.fire.ambient voice @a")
+})
+
+//点燃方块
+BlockEvents.rightClicked("kaleidoscope_cookery:stove",event =>{
+    let item = event.item
+    if (!item.is("mocai:arisa_fire")){return 0}
+    let block = event.block.toString()
+    let player = event.player
+    if (block.includes("lit=false")){
+        let server = event.server
+        block = block.replace("lit=false","lit=true")
+        let pos = vecToArr(event.block.pos)
+        console.log(block)
+        server.runCommandSilent("/setblock "+pos[0]+" "+pos[1]+" "+pos[2]+" "+block)
+        server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound minecraft:block.fire.ambient voice @a")
+    }
+})
+
+//烧毁物品
+ItemEvents.rightClicked("mocai:arisa_fire",event =>{
+    let player = event.player
+    if (!player.getOffHandItem().is("air")){
+        let item = player.getOffHandItem()
+        let server = event.server
+        for (let ignitable of arisaIgnitable){
+            if (item.hasTag(ignitable) || item.is(ignitable)){
+                player.setOffHandItem("supplementaries:ash")
+                server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound minecraft:block.fire.ambient voice @a")
+                event.cancel()
+            }
+        }
+    }
+})
+
+//烤瓶子
+ItemEvents.rightClicked("mocai:arisa_fire",event =>{
+    let player = event.player
+    if (!player.getOffHandItem().is("air")){
+        let item = player.getOffHandItem()
+        let server = event.server
+        if (item.is("minecraft:potion")){
+            player.setOffHandItem("minecraft:glass_bottle")
+            player.getOffHandItem().setCustomName({"text":"炙烤瓶子","italic":false})
+            server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound minecraft:block.fire.ambient voice @a")
+        }
+    }
+})
+
+//远程投掷
+ItemEvents.rightClicked("mocai:arisa_fire",event =>{
+    let player = event.player
+    if (!isMajoPlayer(player)){return 0}
+    let majo = isMajoPlayer(player)
+    if (majo.name != "紫藤亚里沙"){return 0}
+    if (player.rayTrace(8).entity){
+        let server = event.server
+        let entity = player.rayTrace(8).entity
+        let distance = entity.distanceToEntity(player)
+        let startPos = player.eyePosition
+        let endPos = entity.position()
+        for (let i=0;i<distance;i+=0.5){
+            let pos = [i*(endPos.x()-startPos.x())/distance+startPos.x(),i*(endPos.y()-startPos.y())/distance+startPos.y(),i*(endPos.z()-startPos.z())/distance+startPos.z()]
+            for (let j=0;j<5;j++){
+                server.scheduleInTicks(i,event =>{
+                    let randPos = [pos[0]+Math.random()-0.5,pos[1]+Math.random()-0.5,pos[2]+Math.random()-0.5]
+                    server.runCommandSilent("/particle minecraft:flame "+randPos[0]+" "+randPos[1]+" "+randPos[2])
+                })
+            }
+        }
+        entity.setRemainingFireTicks(100)
+        server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound minecraft:entity.blaze.shoot voice @a")
+        if (player.getMainHandItem().is("mocai:arisa_fire")){
+            player.setMainHandItem("air")
+            majo.ignite = false
+        }
+    }
+})
+
+//免疫火焰
+PlayerEvents.tick(event =>{
+    let player = event.player
+    if (!isMajoPlayer(player)){return 0}
+    let majo = isMajoPlayer(player)
+    if (majo.name != "紫藤亚里沙"){return 0}
+    player.potionEffects.add("minecraft:fire_resistance",10,0,false,false)
+    if (player.remainingFireTicks){
+        player.setRemainingFireTicks(0)
+    }
+})
