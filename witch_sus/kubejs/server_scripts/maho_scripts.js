@@ -38,6 +38,7 @@ ItemEvents.entityInteracted("mocai:meruru_cross",event =>{
 EntityEvents.afterHurt(event =>{
     if (!isMajoProgressing){return 0}
     if (!event.source.player){return 0}
+    if (!event.source.weaponItem){return 0}
     if (event.source.weaponItem == "air"){return 0}
     if (event.entity.potionEffects.isActive("mocai:witchfication") && event.source.weaponItem.customData.getBoolean("tredecim")){
         event.entity.kill()
@@ -357,7 +358,7 @@ ItemEvents.rightClicked("mocai:arisa_fire",event =>{
         let entity = player.rayTrace(8).entity
         let distance = entity.distanceToEntity(player)
         let startPos = player.eyePosition
-        let endPos = entity.position()
+        let endPos = entity.eyePosition
         for (let i=0;i<distance;i+=0.5){
             let pos = [i*(endPos.x()-startPos.x())/distance+startPos.x(),i*(endPos.y()-startPos.y())/distance+startPos.y(),i*(endPos.z()-startPos.z())/distance+startPos.z()]
             for (let j=0;j<5;j++){

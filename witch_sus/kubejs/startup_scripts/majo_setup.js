@@ -12,6 +12,7 @@ function Majo(name,height,color,token,physique,mentality){
     this.recoverMulti = 0.02*physique
     this.speedMulti = 0.0006*physique
     this.scaleMulti = height/180
+    this.knockBackResistance = 0.005*physique
     
     this.maxFatigue = 6000+200*physique+30*mentality
     this.fatigueMulti = 1.5-0.01*physique
@@ -39,6 +40,13 @@ function Majo(name,height,color,token,physique,mentality){
     this.pos = null
     this.carrior = null
     this.shadering = false
+
+    this.ronpaWord = ''
+
+    this.totalLog = []
+    this.memorableLog = []
+    this.logTimePause = 0
+    this.writingLogTimePause = 0
 }
 
 //角色卡

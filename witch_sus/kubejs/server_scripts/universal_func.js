@@ -39,6 +39,69 @@ function isMajoPlayer(player){
     }
 }
 
+//玩家是否在某结构中，如果是，返回结构
+
+function inStructure(player){
+    let pos = vecToArr(player.position())
+    let level = player.level.name.string
+    level = level.replace("minecraft:","")
+    for (let structure of global.structureList){
+        if (level != structure.level){continue}
+        let area = structure.area
+        for (let cube of area){
+            let startApex = cube[0]
+            let endApex = cube[1]
+            if (startApex[0] <= pos[0] && startApex[1] <= pos[1] && startApex[2] <= pos[2] &&
+                endApex[0] >= pos[0] && endApex[1] >= pos[1] && endApex[2] >= pos[2]){
+                if (player.isInFluidType("minecraft:water") && structure.waterRedirect){
+                    if (pos[1] <= structure.waterRedirect.waterAlt){
+                        return structure.waterRedirect
+                    }
+                    return structure
+                }
+                return structure
+            }
+        }
+    }
+    return null
+}
+
+//玩家是否在可记忆的结构中，如果是，返回结构或其所属结构
+
+function inMemorableSturcture(player){
+    let pos = vecToArr(player.position())
+    let level = player.level.name.string
+    level = level.replace("minecraft:","")
+    for (let structure of global.memorableStructureList){
+        if (level != structure.level){continue}
+        let area = structure.area
+        for (let cube of area){
+            let startApex = cube[0]
+            let endApex = cube[1]
+            if (startApex[0] <= pos[0] && startApex[1] <= pos[1] && startApex[2] <= pos[2] &&
+                endApex[0] >= pos[0] && endApex[1] >= pos[1] && endApex[2] >= pos[2]){
+                if (player.isInFluidType("minecraft:water") && structure.waterRedirect){
+                    if (pos[1] <= structure.waterRedirect.waterAlt){
+                        if (structure.waterRedirect.attachTo){
+                            return structure.waterRedirect.attachTo
+                        }
+                        return structure.waterRedirect
+                    }
+                    if (structure.attachTo){
+                        return structure.attachTo
+                    }
+                    return structure
+                }
+                if (structure.attachTo){
+                    return structure.attachTo
+                }
+                return structure
+            }
+        }
+    }
+    return null
+}
+
 //搜索指定名字的计分板代表
 
 function findScoreHolder(server,name){

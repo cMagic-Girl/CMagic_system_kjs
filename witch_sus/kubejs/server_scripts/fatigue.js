@@ -82,7 +82,7 @@ PlayerEvents.tick(event =>{
     if (player.isInFluidType("minecraft:water") && !majo.faint){
         fatigueScore.add(Math.ceil(waterFatigueSpeed*majo.fatigueMulti*majo.fatigueMultiFromPressure))
     }
-    if (majo.exhausted && !majo.faint){
+    if (majo.exhausted){
         if (fatigueScore.get() > majo.maxFatigue){fatigueScore.set(majo.maxFatigue)}
         fatigueScore.add(Math.ceil(exhaustedDeFatigueSpeed/(majo.fatigueMulti*majo.fatigueMultiFromPressure)))
         server.runCommandSilent("/effect give "+player.name.string+" minecraft:blindness 2 0 true")

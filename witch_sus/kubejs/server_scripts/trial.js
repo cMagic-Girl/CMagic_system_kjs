@@ -17,6 +17,9 @@ let currentSpeechTime = 0 //当前发言已用时间
 let roundRepeated = true //当前轮是否为重复轮
 let closingOpenState = false //是否已设置结束发言
 
+let breakInTimePauseMulti = 1.5 //打断的时间惩罚
+let inviteTimePauseMulti = 1 //邀请的时间惩罚
+
 let candidates = 0 //审判参与者
 let currentParticipants = 0 //现有的参与者
 let participantsSynsMaxTimeOut = 600 //失去同步的最大时间
@@ -303,12 +306,23 @@ ItemEvents.rightClicked("yuushya:button_sign_notice",event =>{
                 }
             }
             let breaker = isMajoPlayer(player)
+            if (breaker.ronpaWord == ''){
+                player.tell({"text":"未准备好论破发言。","color":"yellow"})
+                server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound minecraft:block.note_block.bass voice @s")
+                player.addItemCooldown("yuushya:button_sign_notice",20)
+                return 0
+            }
             beepNoticer(server,{"text":breaker.color+"◆"+breaker.name+"§e打断了发言！"},false)
             server.runCommandSilent("/stopsound @a weather")
             musicTime += 100
             server.runCommandSilent("/execute as @a at @s run playsound sound_effect:crack_01 voice @s")
             server.scheduleInTicks(10,event =>{
                 server.runCommandSilent("/execute as @a at @s run playsound sound_effect:crack_02 voice @s")
+                for (let receiver of server.playerList.players){
+                    receiver.tell(breaker.color+"◆"+breaker.name)
+                    receiver.tell(" "+breaker.ronpaWord)
+                    breaker.ronpaWord = ''
+                }
             })
             server.scheduleInTicks(60,event =>{
                 let breakInMus = Object.keys(breakInMusic)[Math.floor(Math.random()*Object.keys(breakInMusic).length)]
@@ -317,10 +331,10 @@ ItemEvents.rightClicked("yuushya:button_sign_notice",event =>{
             })
             currentSpeecher.push(breaker)
             currentSpeechTime = 0
-            player.addItemCooldown("yuushya:button_sign_notice",setSpeechTime)
+            player.addItemCooldown("yuushya:button_sign_notice",breakInTimePauseMulti*setSpeechTime)
             for (let majo of global.majoList){
                 if (majo.player){
-                    majo.player.addItemCooldown("yuushya:button_sign_notice",setSpeechTime)
+                    majo.player.addItemCooldown("yuushya:button_sign_notice",breakInTimePauseMulti*setSpeechTime)
                 }
             }
         }
@@ -363,11 +377,7 @@ ItemEvents.rightClicked("yuushya:button_sign_bookmark",event =>{
                         beepNoticer(server,{"text":majo.color+"◆"+majo.name+"§e邀请了"+invited.color+"◆"+invited.name+"§e进行发言。"},true)
                         currentSpeecher.push(invited)
                         currentSpeechTime = 0
-                        for (let majo of global.majoList){
-                            if (majo.player){
-                                majo.player.addItemCooldown("yuushya:button_sign_bookmark",setSpeechTime)
-                            }
-                        }
+                        player.addItemCooldown("yuushya:button_sign_bookmark",inviteTimePauseMulti*setSpeechTime)
                         return 1
                     }
                 }
@@ -504,7 +514,7 @@ PlayerEvents.tick(event =>{
                     item.setCustomName({"text":"准备与邀请","color":"green","italic":false})
                     item.setLore([{"text":"若下一发言时段暂无发言人，使自己成为下一时段的发言人","color":"white","italic":false},
                         {"text":"若自己是当前时段的发言人，使准星对准的角色加入发言时段，并重置发言时间","color":"white","italic":false},
-                        {"text":"若如此做，冷却时间为一个发言时段，且所有参与者共享","color":"white","italic":false}
+                        {"text":"若如此做，冷却时间为一个发言时段","color":"white","italic":false}
                     ])
                     break
             }
@@ -558,10 +568,10 @@ ServerEvents.tick(event =>{
     if (!participantsSyns){return 0}
     speaker = displayCurrentSpeecher()
     nextSpeaker = displayNextSpeecher()
-    let roundTime = tickToTime(setRoundTime-currentRoundTime)
+    let roundTime = tickToTimeMinAndSec(setRoundTime-currentRoundTime)
     roundTimeMin = roundTime[0]
     roundTimeSec = roundTime[1]
-    let speakTime = tickToTime(setSpeechTime-currentSpeechTime)
+    let speakTime = tickToTimeMinAndSec(setSpeechTime-currentSpeechTime)
     speakTimeMin = speakTime[0]
     speakTimeSec = speakTime[1]
     if (roundRepeated){
@@ -721,6 +731,7 @@ PlayerEvents.chat(event =>{
             event.cancel()
         }
         let maySpeech = false
+        let mayRonpa = false
         if (currentSpeecherForced.length){
             if (currentSpeecherForced[0] == "OPEN"){
                 maySpeech = true
@@ -745,8 +756,17 @@ PlayerEvents.chat(event =>{
                 }
             }
         }
-        if (!maySpeech){
+        if (!maySpeech && currentSpeecher.length){
+            mayRonpa = true
+        }
+        if (!maySpeech && !mayRonpa){
             player.tell("§e现在不是自己的发言时段。")
+            event.cancel()
+        }
+        if (!maySpeech && mayRonpa){
+            player.tell("§e已准备好论破发言，内容为：")
+            player.tell("§e"+message)
+            majo.ronpaWord = message
             event.cancel()
         }
         let ananOrder = false
@@ -955,17 +975,17 @@ function resetVote(){
     }
 }
 
-//将刻数转化为60进制时间文本数组
-function tickToTime(tick){
+//将刻数转化为60进制分钟-秒时间文本数组
+function tickToTimeMinAndSec(tick){
     let min = Math.floor(tick/1200)
     let sec = Math.floor((tick-min*1200)/20)
     if (sec < 10){
-        sec.toString()
+        sec = sec.toString()
         sec = '0'+sec
     }
     else {
-        sec.toString()
+        sec = sec.toString()
     }
-    min.toString()
+    min = min.toString()
     return [min,sec]
 }

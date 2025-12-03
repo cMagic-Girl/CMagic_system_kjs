@@ -1,6 +1,8 @@
 // priority: 1
 //魔女与魔女化进程
 
+const $ScoreHolder = Java.loadClass("net.minecraft.world.scores.ScoreHolder")
+
 let isMajoProgressing = false //开关
 let isFocusMode = false //焦点模式开关
 let reloadTrigger = true //检测脚本被重载
@@ -10,7 +12,9 @@ let fatigue = null //疲劳计分板
 let pressure = null //压力计分板
 let jump = null //跳跃计分板
 let hunger = null //饱食度计分板
-let neededScoreBoard = ["Majo_Progress","Fatigue","Pressure","Jump","Hunger"] //必要的计分板目录
+let weekdays = null //星期计分板
+const day = $ScoreHolder.forNameOnly("day") //星期计分板的唯一计分项
+let neededScoreBoard = ["Majo_Progress","Fatigue","Pressure","Jump","Hunger","Weekdays"] //必要的计分板目录
 
 let timeSynsTrigger = true //激活按天结算
 let majolizeTimeTrigger = false //按天结算魔女化进度
@@ -165,6 +169,19 @@ ServerEvents.tick(event =>{
     
 })
 
+//完全魔女化的buff
+
+PlayerEvents.tick(event =>{
+    if (!isMajoProgressing){return 0}
+    let player = event.player
+    if (!player.stages.has("totallyMajolize")){return 0}
+    player.potionEffects.add("minecraft:instant_health",10,99,false,false)
+    player.potionEffects.add("minecraft:resistance",10,4,false,false)
+    player.potionEffects.add("minecraft:speed",10,0,false,false)
+    player.potionEffects.add("minecraft:jump_boost",10,1,false,false)
+    player.potionEffects.add("minecraft:strength",10,2,false,false)
+})
+
 //审问开始
 
 ItemEvents.rightClicked("yuushya:button_sign_play",event =>{
@@ -277,6 +294,35 @@ function reloadScript(server){
     pressure = server.scoreboard.getObjective('Pressure')
     jump = server.scoreboard.getObjective('Jump')
     hunger = server.scoreboard.getObjective('Hunger')
+    weekdays = server.scoreboard.getObjective("Weekdays")
+    let weekDay = server.scoreboard.getOrCreatePlayerScore(day,weekdays)
+    if (weekDay.get() == 0){
+        weekDay.set(1)
+    }
+    currentWeekDay = weekDay.get()
+    switch(weekDay.get()){
+        case 1:
+            currentWeekDayString = '周一'
+            break
+        case 2:
+            currentWeekDayString = '周二'
+            break
+        case 3:
+            currentWeekDayString = '周三'
+            break
+        case 4:
+            currentWeekDayString = '周四'
+            break
+        case 5:
+            currentWeekDayString = '周五'
+            break
+        case 6:
+            currentWeekDayString = '周六'
+            break
+        case 7:
+            currentWeekDayString = '周日'
+            break
+    }
     reloadTrigger = false
 }
 
@@ -306,6 +352,7 @@ function majoPlayerPrefix(server,majo){
     let player = majo.player
     let name = player.name.string
     server.runCommandSilent("/attribute "+name+" minecraft:generic.scale base set "+majo.scaleMulti)
+    server.runCommandSilent("/attribute "+name+" minecraft:generic.knockback_resistance base set "+majo.knockBackResistance)
     server.runCommandSilent("/gamemode survival "+name)
     server.runCommandSilent("/tag "+name+" add majo")
     player.setMaxHealth(majo.maxHealth)
@@ -388,25 +435,22 @@ function majolizeInform(server){
             if (newStage > oldStage){
                 switch (newStage){
                     case 1:
-                        majo.player.tell("§4你感到惴惴不安……")
+                        player.tell("§4你感到惴惴不安……")
                         break
                     case 2:
-                        majo.player.tell("§4有什么在心底滋长……")
+                        player.tell("§4有什么在心底滋长……")
                         break
                     case 3:
-                        majo.player.tell("§4黑暗的想法爬满了心头……")
+                        player.tell("§4黑暗的想法爬满了心头……")
                         break
                     case 4:
-                        majo.player.tell("§4深渊只有一步之遥……")
+                        player.tell("§4深渊只有一步之遥……")
                         break
                     case 5:
-                        majo.player.tell("§4你已经彻底堕为魔女了……也许仍有一线生机……")
+                        player.tell("§4你已经彻底堕为魔女了……也许仍有一线生机……")
                         player.setMaxHealth(40)
-                        server.runCommandSilent("/effect give "+name+" minecraft:instant_health 1 99 true")
-                        server.runCommandSilent("/effect give "+name+" minecraft:resistance infinite 4 true")
-                        server.runCommandSilent("/effect give "+name+" minecraft:speed infinite 0 true")
-                        server.runCommandSilent("/effect give "+name+" minecraft:jump_boost infinite 1 true")
-                        server.runCommandSilent("/effect give "+name+" minecraft:strength infinite 2 true")
+                        player.stages.add("totallyMajolize")
+                        server.runCommandSilent("/attribute "+name+" minecraft:generic.knockback_resistance base set 1")
                         break
                 }
                 server.runCommandSilent("/execute as "+name+" at @s run playsound minecraft:entity.wither.spawn voice @s ~ ~ ~ "+(0.2*newStage)+" "+(1/newStage))
@@ -415,24 +459,22 @@ function majolizeInform(server){
             if (newStage < oldStage){
                 switch (oldStage){
                     case 1:
-                        majo.player.tell("§2你感到安心多了……")
+                        player.tell("§2你感到安心多了……")
                         break
                     case 2:
-                        majo.player.tell("§2心底的冲动逐渐平息……")
+                        player.tell("§2心底的冲动逐渐平息……")
                         break
                     case 3:
-                        majo.player.tell("§2心头的阴霾驱散了少许……")
+                        player.tell("§2心头的阴霾驱散了少许……")
                         break
                     case 4:
-                        majo.player.tell("§2深渊的召唤逐渐消失了……")
+                        player.tell("§2深渊的召唤逐渐消失了……")
                         break
                     case 5:
-                        majo.player.tell("§2你竟然真的爬出了深渊……暂时……")
+                        player.tell("§2你竟然真的爬出了深渊……暂时……")
                         player.setMaxHealth(majo.maxHealth)
-                        server.runCommandSilent("/effect clear "+name+" minecraft:resistance")
-                        server.runCommandSilent("/effect clear "+name+" minecraft:speed")
-                        server.runCommandSilent("/effect clear "+name+" minecraft:jump_boost")
-                        server.runCommandSilent("/effect clear "+name+" minecraft:strength")
+                        player.stages.remove("totallyMajolize")
+                        server.runCommandSilent("/attribute "+name+" minecraft:generic.knockback_resistance base set "+majo.knockBackResistance)
                         break
                 }
                 server.runCommandSilent("/execute as "+name+" at @s run playsound minecraft:block.beacon.power_select voice @s ~ ~ ~ "+(0.2*(newStage+1))+" 1")

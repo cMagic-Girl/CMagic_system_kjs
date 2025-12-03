@@ -28,6 +28,7 @@ ItemEvents.dropped(event =>{
 })
 
 //临时禁用一些效果
+
 ServerEvents.tick(event =>{
     let server = event.server
     let time = server.tickCount
@@ -300,8 +301,9 @@ PlayerEvents.chat(event =>{
 
 //时间校对/幕间的角色保护
 
-PlayerEvents.tick(event =>{
-    let level = event.level
+ServerEvents.tick(event =>{
+    let server = event.server
+    let level = server.getLevel("overworld")
     if (!timeSynsTrigger){
         if (level.night){
             timeSynsTrigger = true
@@ -315,10 +317,11 @@ PlayerEvents.tick(event =>{
         }
     }
     if (isMajoProgressing){return 0}
-    let player = event.player
-    if (isMajoPlayer(player)){
-        event.server.runCommandSilent("/effect give "+player.name.string+" minecraft:resistance 2 4 true")
-    }    
+    for (let player of server.playerList.players){
+        if (isMajoPlayer(player)){
+            player.potionEffects.add("minecraft:resistance",10,4,false,false)
+        }    
+    } 
 })
 
 //临时允许夜间时间流动

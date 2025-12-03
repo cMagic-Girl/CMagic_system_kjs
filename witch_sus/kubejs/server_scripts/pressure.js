@@ -14,7 +14,6 @@ let noPressureCostItem = ["mocai:margo_tarot","minecraft:clock","minecraft:air",
 
 PlayerEvents.tick(event =>{
     if (!isMajoProgressing){return 0}
-    if (isFocusMode){return 0}
     let player = event.player
     if (!isMajoPlayer(player)){return 0}
     let server = event.server
@@ -36,13 +35,15 @@ PlayerEvents.tick(event =>{
         }
         player.setSelectedSlot(majo.selectedSlot)
         server.runCommandSilent("/effect give "+player.name.string+" minecraft:blindness 2 0 true")
-        pressureScore.add(Math.ceil(faintRecovery/majo.pressureMulti))
-        fatigueScore.add(Math.ceil(faintRecovery/(5*majo.fatigueMulti)))
-        if (fatigueScore.get() < 0){
-            fatigueScore.set(0)
-        }
-        if (pressureScore.get() < 0){
-            pressureScore.set(0)
+        if (!isFocusMode){
+            pressureScore.add(Math.ceil(faintRecovery/majo.pressureMulti))
+            fatigueScore.add(Math.ceil(faintRecovery/(5*majo.fatigueMulti)))
+            if (fatigueScore.get() < 0){
+                fatigueScore.set(0)
+            }
+            if (pressureScore.get() < 0){
+                pressureScore.set(0)
+            }
         }
         if (pressureScore.get() == 0){
             server.runCommandSilent("/ysm play "+player.name.string+" empty")
@@ -52,42 +53,8 @@ PlayerEvents.tick(event =>{
         }
         return 1
     }
-    if(!player.isSleeping()){pressureScore.add(Math.ceil(basicPressureSpeed*majo.pressureMulti))}
+    if(!player.isSleeping() && !isFocusMode){pressureScore.add(Math.ceil(basicPressureSpeed*majo.pressureMulti))}
     majo.fatigueMultiFromPressure = Math.max(1,2*pressureScore.get()/majo.maxPressure)
-    if (pressureScore.get() > majo.maxPressure && !majo.faint){
-        majo.faint = true
-        player.tell("§4你累得昏过去了……")
-        server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound minecraft:block.beacon.deactivate voice @s ~ ~ ~ 1 0.1")
-        majo.majolizeFromFaint += Math.round(faintMajolize*majo.majolizeMulti*majo.extraMajolizeMulti)
-        majo.fatigueMultiFromPressure = 10000
-        majo.selectedSlot = player.selectedSlot
-        majo.pos = vecToArr(player.position())
-    }
-})
-
-//焦点模式下的昏迷事件
-
-PlayerEvents.tick(event =>{
-    if (!isMajoProgressing){return 0}
-    if (!isFocusMode){return 0}
-    let player = event.player
-    if (!isMajoPlayer(player)){return 0}
-    let server = event.server
-    let majo = isMajoPlayer(player)
-    let pressureScore = server.scoreboard.getOrCreatePlayerScore(majo.scoreHolder,pressure)
-    if (majo.faint){
-        let pos = majo.pos
-        if (!majo.carrior){
-            server.runCommandSilent("/tp "+player.name.string+" "+pos[0]+" "+pos[1]+" "+pos[2])
-            server.runCommandSilent("/ysm play "+player.name.string+" climbing")
-        }
-        else {
-            majo.pos = vecToArr(player.position())
-        }
-        player.setSelectedSlot(majo.selectedSlot)
-        server.runCommandSilent("/effect give "+player.name.string+" minecraft:blindness 2 0 true")
-        return 1
-    }
     if (pressureScore.get() > majo.maxPressure && !majo.faint){
         majo.faint = true
         player.tell("§4你累得昏过去了……")
