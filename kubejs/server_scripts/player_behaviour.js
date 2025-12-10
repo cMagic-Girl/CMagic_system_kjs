@@ -9,6 +9,7 @@ let shoutRadius = [35,40,45] //大声发的收听范围
 let talkRadius = [8,12,16] //普通谈话的收听范围
 let whispRadius = [2,3,4] //耳语的收听范围
 let localRadius = shoutRadius[2] //本地听取的收听范围
+let effectClearTimePause = 20 //清除效果的间歇
 
 //禁用掉落物消失且禁用丢出特殊物品
 
@@ -27,11 +28,26 @@ ItemEvents.dropped(event =>{
 
 //临时禁用一些效果
 
-ServerEvents.tick(event =>{
+PlayerEvents.tick(event =>{
+    let player = event.player
     let server = event.server
-    let time = server.tickCount
-    server.runCommandSilent('/effect clear @a kaleidoscope_cookery:flatulence')
-    server.runCommandSilent('/effect clear @a kaleidoscope_cookery:satiated_shield')
+    if (effectClearTimePause <= 0){
+        if (player.potionEffects.isActive("kaleidoscope_cookery:flatulence")){
+            server.runCommandSilent('/effect clear '+player.name.string+' kaleidoscope_cookery:flatulence')
+        }
+        if (player.potionEffects.isActive("kaleidoscope_cookery:satiated_shield")){
+            server.runCommandSilent('/effect clear '+player.name.string+' kaleidoscope_cookery:satiated_shield')
+        }
+    }
+})
+
+ServerEvents.tick(event =>{
+    if (effectClearTimePause <= 0){
+        effectClearTimePause = 20
+    }
+    else {
+        effectClearTimePause -= 1
+    }
 })
 
 //禁用指令
