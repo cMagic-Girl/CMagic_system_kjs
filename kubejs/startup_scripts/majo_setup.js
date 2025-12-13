@@ -81,6 +81,7 @@ hosho_mago.learnedSound = [hosho_mago]
 hosho_mago.selectedSound = 0
 
 tono_hanna.flying = false
+tono_hanna.flyingTimePause = 0
 
 shito_arisa.ignite = false
 

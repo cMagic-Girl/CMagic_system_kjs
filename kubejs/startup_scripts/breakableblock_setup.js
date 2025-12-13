@@ -7,5 +7,8 @@ global.breakableBlockList = ["air","supplementaries:book_pile_horizontal","sleep
  'kaleidoscope_cookery:sweet_and_sour_ender_pearls','kaleidoscope_cookery:crystal_lamb_chop','kaleidoscope_cookery:blaze_lamb_chop','kaleidoscope_cookery:frost_lamb_chop',
  'kaleidoscope_cookery:nether_style_sashimi','kaleidoscope_cookery:end_style_sashimi','kaleidoscope_cookery:desert_style_sashimi','kaleidoscope_cookery:tundra_style_sashimi',
  'kaleidoscope_cookery:cold_style_sashimi','kaleidoscope_cookery:shengjian_mantou','minecraft:bamboo','minecraft:brown_mushroom','minecraft:red_mushroom','kaleidoscope_cookery:fruit_basket',
- "minecraft:bamboo_block"
 ]
+
+//雪莉可以操作的方块类型
+
+global.sherriBlockList = ['minecraft:bamboo_blocks']

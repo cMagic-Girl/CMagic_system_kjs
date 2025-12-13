@@ -1,7 +1,7 @@
 // priority: 2
 //玩家行为
 
-const $EntityPickupEvent = Java.loadClass("tschipp.carryon.events.EntityPickupEvent")
+const EntityPickupEvent = Java.loadClass("tschipp.carryon.events.EntityPickupEvent")
 
 let spongeWord = ".." //混淆替换词
 let noSpongeChar = [",","，",".","。","？","?","!","！"] //不予混淆的字符
@@ -110,14 +110,10 @@ PlayerEvents.chat(event =>{
         if (isJudging){return 0}
         let majo = isMajoPlayer(player)
         if (majo){
-            if (player.stages.has("Decipher")){
-                if (message.length == majo.decipher["answer"].length){
-                    if (/^[A-Za-z]+$/.test(message)){
-                        message = message.toLowerCase()
-                        tryDeciphering(majo,message,server)
-                        event.cancel()
-                    }
-                }
+            if (player.stages.has("Decipher") && message.length == majo.decipher["answer"].length && /^[A-Za-z]+$/.test(message)){
+                message = message.toLowerCase()
+                tryDeciphering(majo,message,server)
+                event.cancel()
             }
             let ananOrder = false
             let ananOrderRadius = -1
@@ -382,7 +378,7 @@ ServerEvents.tick(event =>{
     } 
 })
 
-//禁用方块破坏
+//方块操作
 
 BlockEvents.broken(event =>{
     if (!isMajoProgressing){return 0}
@@ -392,13 +388,35 @@ BlockEvents.broken(event =>{
     let block = event.block
     for (let allowed of global.breakableBlockList){
         if (block.id == allowed || block.hasTag(allowed)){return 0}
+        if (majo.name == "橘雪莉"){
+            for (let allowed of global.sherriBlockList){
+                if (block.id == allowed || block.hasTag(allowed)){return 0}
+            }
+        }
+    }
+    event.cancel()
+})
+
+BlockEvents.placed(event =>{
+    if (!isMajoProgressing){return 0}
+    let player = event.player
+    let majo = isMajoPlayer(player)
+    if (!majo){return 0}
+    let block = event.block
+    for (let allowed of global.breakableBlockList){
+        if (block.id == allowed || block.hasTag(allowed)){return 0}
+        if (majo.name == "橘雪莉"){
+            for (let allowed of global.sherriBlockList){
+                if (block.id == allowed || block.hasTag(allowed)){return 0}
+            }
+        }
     }
     event.cancel()
 })
 
 //被抱起时的标签
 
-NativeEvents.onEvent($EntityPickupEvent,event =>{
+NativeEvents.onEvent(EntityPickupEvent,event =>{
     if (event.target.isPlayer()){
         if (isMajoPlayer(event.target)){
             isMajoPlayer(event.target).carrior = event.player
@@ -421,7 +439,7 @@ PlayerEvents.tick(event =>{
 
 let corpseInventoryTemp = {}
 
-NativeEvents.onEvent($EntityPickupEvent,event =>{
+NativeEvents.onEvent(EntityPickupEvent,event =>{
     if (event.target.type == "corpse:corpse"){
         let nbt = event.target.nbt
         corpseInventoryTemp[nbt["Death"]["PlayerName"]] = [nbt["Death"]["MainInventory"],nbt["Death"]["OffHandInventory"],nbt["Death"]["ArmorInventory"]]

@@ -1,6 +1,10 @@
 // priority:6
 //魔法复现
 
+const $Vec3 = Java.loadClass("net.minecraft.world.phys.Vec3")
+const $DoorBlock = Java.loadClass("net.minecraft.world.level.block.DoorBlock")
+const $Boolean = Java.loadClass("java.lang.Boolean")
+
 let meruruMahoCost = 100000 //梅露露魔法的精力消耗
 let meruruMahoBenefit = 5 //梅露露魔法提供的魔女化乘子减免
 let hannaMahoCost = 20 //汉娜魔法的体力消耗
@@ -9,8 +13,11 @@ let defaultArisaFireAmbient = 0.001
 let arisaFireAmbient = 0.001 //亚里沙火焰燃烧音效的频率
 let mahoRifleReloadTimeTrigger = false //按天为魔法步枪恢复弹药
 let arisaIgnitable = {"minecraft:bookshelf_books":"supplementaries:ash",'minecraft:paper':"supplementaries:ash","minecraft:potion":'minecraft:glass_bottle[custom_name=\'{"text":"炙烤瓶子","italic":false}\']'} //亚里沙可以点燃的物品tag或物品
+const sheriiDamageBoost = 5 //雪莉的伤害加成
+const sheriiKnockBackBoost = 5 //雪莉的击退加成
 
 //梅露露的魔法
+//治愈
 ItemEvents.entityInteracted("mocai:meruru_cross",event =>{
     if (!isMajoProgressing){return 0}
     let player = event.player
@@ -34,6 +41,25 @@ ItemEvents.entityInteracted("mocai:meruru_cross",event =>{
     player.addItemCooldown("mocai:meruru_cross",1200)
 })
 
+ServerEvents.tick(event =>{
+    if (!isMajoProgressing){return 0}
+    let majo = findMajo("冰上梅露露")
+    let player = majo.player
+    if (!player){return 0}
+    let item = player.getMainHandItem()
+    if (!item.is(majo.token)){
+        item = player.getOffHandItem()
+    }
+    if (!item.is(majo.token)){return 0}
+    let entity = player.rayTrace().entity
+    if (!entity){return 0}
+    let maxHealth = entity.maxHealth/2
+    let health = entity.health/2
+    let name = entity.displayName.string
+    let server = event.server
+    server.runCommandSilent('/title '+player.name.string+' actionbar {"text":"'+name+' '+health+'§c♥§f/'+maxHealth+'§c♥§f"}')
+})
+
 //涂了特雷德基姆的武器
 EntityEvents.afterHurt(event =>{
     if (!isMajoProgressing){return 0}
@@ -46,23 +72,26 @@ EntityEvents.afterHurt(event =>{
 })
 
 //奈叶香的枪
-PlayerEvents.tick(event =>{
+ServerEvents.tick(event =>{
     if (!isMajoProgressing){return 0}
-    let player = event.player
-    for (let i = 0;i<player.inventory.slots;i++){
-        let item = player.inventory.getStackInSlot(i)
-        if (item.is("tacz:modern_kinetic_gun")){
-            if (item.customData.contains("maho")){
-                let ammoCount = item.customData.getInt("GunCurrentAmmoCount")
-                let barrelAmmo = item.customData.getInt("HasBulletInBarrel")
-                if ((ammoCount > 4 && barrelAmmo == 1) || (ammoCount > 5 && barrelAmmo == 0)){return 0}
-                if (!mahoRifleReloadTimeTrigger){return 0}
-                let newItem = 'tacz:modern_kinetic_gun[custom_data={GunCurrentAmmoCount:'+(ammoCount+1)+',GunFireMode:'+item.customData.getString("GunFireMode")+',GunId:'+item.customData.get("GunId")+',HasBulletInBarrel:'+item.customData.get("HasBulletInBarrel")+',maho:1b}]'
-                player.inventory.setStackInSlot(i,newItem)
-                mahoRifleReloadTimeTrigger = false
+    if (!mahoRifleReloadTimeTrigger){return 0}
+    let server = event.server
+    for (let player of server.playerList.players){
+        for (let i = 0;i<player.inventory.slots;i++){
+            let item = player.inventory.getStackInSlot(i)
+            if (item.is("tacz:modern_kinetic_gun")){
+                if (item.customData.getBoolean("maho")){
+                    let ammoCount = item.customData.getInt("GunCurrentAmmoCount")
+                    let barrelAmmo = item.customData.getBoolean("HasBulletInBarrel")
+                    if ((ammoCount > 4 && barrelAmmo) || (ammoCount > 5 && !barrelAmmo)){break}
+                    item = getItemStringRepresent(item)
+                    item = item.replace(/GunCurrentAmmoCount:\d+\b/,"GunCurrentAmmoCount:"+(ammoCount+1))
+                    player.inventory.setStackInSlot(i,item)
+                }
             }
         }
-    }    
+    }
+    mahoRifleReloadTimeTrigger = false
 })
 
 //玛格的魔法
@@ -92,12 +121,11 @@ ItemEvents.entityInteracted("mocai:margo_tarot",event =>{
 })
 
 //手持提示
-PlayerEvents.tick(event =>{
+ServerEvents.tick(event =>{
     if (!isMajoProgressing){return 0}
-    let player = event.player
-    if (!isMajoPlayer(player)){return 0}
-    let majo = isMajoPlayer(player)
-    if (majo.name != "宝生玛格"){return 0}
+    let majo = findMajo("宝生玛格")
+    let player = majo.player
+    if (!player){return 0}
     if (majo.selectedSound >= majo.learnedSound.length || majo.faint){majo.selectedSound = 0}
     if (majo.selectedSound < 0){majo.selectedSound = majo.learnedSound.length-1}
     let item = player.getMainHandItem()
@@ -150,47 +178,33 @@ ItemEvents.rightClicked("mocai:hannafan",event =>{
     }
 })
 
-//手持提示
-PlayerEvents.tick(event =>{
+//手持提示与漂浮
+ServerEvents.tick(event =>{
     if (!isMajoProgressing){return 0}
-    let player = event.player
-    if (!isMajoPlayer(player)){return 0}
-    let majo = isMajoPlayer(player)
-    if (majo.name != "远野汉娜"){return 0}
+    let majo = findMajo("远野汉娜")
+    let player = majo.player
+    if (!player){return 0}
     let item = player.getMainHandItem()
-    if (!item.is("mocai:hannafan")){
+    if (!item.is(majo.token)){
         item = player.getOffHandItem()
-        if (!item.is("mocai:hannafan")){
-            return 0
-        }
     }
     let server = event.server
-    if (!majo.flying){
+    if (!majo.flying && item.is(majo.token)){
         server.runCommandSilent('/title '+player.name.string+' actionbar {"text":"不在飞行desuwa","color":"yellow"}')
     }
-    else {
+    else if(item.is(majo.token)){
         server.runCommandSilent('/title '+player.name.string+' actionbar {"text":"正在飞行desuwa","color":"green"}')
     }
-})
-
-//漂浮
-PlayerEvents.tick(event =>{
-    if (!isMajoProgressing){return 0}
-    let player = event.player
-    if (!isMajoPlayer(player)){return 0}
-    let majo = isMajoPlayer(player)
-    if (majo.name != "远野汉娜"){return 0}
     if (player.sleeping || majo.exhausted || majo.faint){
         majo.flying = false
         return 0
     }
     if (majo.flying){
-        let server = event.server
-        let level = event.level
+        let level = player.level
         let pos = vecToArr(player.position())
-        let time = server.tickCount
-        if (time % hannaMahoTimePause == 0 || level.getBlock(pos[0],Math.floor(player.position().y-0.5),pos[2]).getId() != "minecraft:air" || player.shiftKeyDown){
+        if (majo.flyingTimePause <= 0 || level.getBlock(pos[0],Math.floor(player.position().y-0.5),pos[2]).getId() != "minecraft:air" || player.shiftKeyDown){
             player.potionEffects.add("minecraft:levitation",Math.floor(hannaMahoTimePause/2),0,false,false)
+            majo.flyingTimePause = hannaMahoTimePause
         }
         player.potionEffects.add("minecraft:slow_falling",60,0,false,false)
         if (player.shiftKeyDown){
@@ -220,34 +234,14 @@ ItemEvents.firstLeftClicked("minecraft:air",event=>{
     }
 })
 
-PlayerEvents.tick(event =>{
-    let player = event.player
-    if (!isMajoPlayer(player)){return 0}
-    let majo = isMajoPlayer(player)
-    if (majo.name != "紫藤亚里沙"){return 0}
-    let server = event.server
-    let item = player.getMainHandItem()
-    if (item.is("mocai:arisa_fire")){majo.ignite = true}
-    else {majo.ignite = false}
-    if (majo.ignite){
-        if (Math.random() < arisaFireAmbient){
-            server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound minecraft:block.fire.ambient voice @a")
-            arisaFireAmbient = defaultArisaFireAmbient
-        }
-        else (
-            arisaFireAmbient += 0.001
-        )
-    }
-})
-
-//物品管制
-PlayerEvents.tick(event =>{
-    let player = event.player
-    if (!isMajoPlayer(player)){return 0}
-    let majo = isMajoPlayer(player)
-    if (majo.name != "紫藤亚里沙"){return 0}
+//物品管制与火焰免疫
+ServerEvents.tick(event =>{
+    let majo = findMajo("紫藤亚里沙")
+    let player = majo.player
+    if (!player){return 0}
     let server = event.server
     if (!player.getMainHandItem().is("mocai:arisa_fire")){
+        majo.ignite = false
         for (let i=0;i<player.inventory.slots;i++){
             let item = player.inventory.getStackInSlot(i)
             if (item.is("mocai:arisa_fire")){
@@ -256,6 +250,22 @@ PlayerEvents.tick(event =>{
                 return 1
             }
         }
+    }
+    else {
+        majo.ignite = true
+    }
+    player.potionEffects.add("minecraft:fire_resistance",10,0,false,false)
+    if (player.remainingFireTicks){
+        player.setRemainingFireTicks(0)
+    }
+    if (majo.ignite){
+        if (Math.random() < arisaFireAmbient){
+            server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound minecraft:block.fire.ambient voice @a")
+            arisaFireAmbient = defaultArisaFireAmbient
+        }
+        else (
+            arisaFireAmbient += 0.001
+        )
     }
 })
 
@@ -330,7 +340,7 @@ ItemEvents.rightClicked("mocai:arisa_fire",event =>{
         let server = event.server
         for (let ignitable of Object.keys(arisaIgnitable)){
             if (item.hasTag(ignitable) || item.is(ignitable)){
-                server.runCommandSilent("/item replace entity "+player.name.string+" weapon.offhand with "+arisaIgnitable[ignitable])
+                player.setOffHandItem(arisaIgnitable[ignitable])
                 server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound minecraft:block.fire.ambient voice @a")
                 event.cancel()
             }
@@ -364,18 +374,6 @@ ItemEvents.rightClicked("mocai:arisa_fire",event =>{
         if (player.getMainHandItem().is("mocai:arisa_fire")){
             player.setMainHandItem("air")
         }
-    }
-})
-
-//免疫火焰
-PlayerEvents.tick(event =>{
-    let player = event.player
-    if (!isMajoPlayer(player)){return 0}
-    let majo = isMajoPlayer(player)
-    if (majo.name != "紫藤亚里沙"){return 0}
-    player.potionEffects.add("minecraft:fire_resistance",10,0,false,false)
-    if (player.remainingFireTicks){
-        player.setRemainingFireTicks(0)
     }
 })
 
@@ -480,4 +478,65 @@ ServerEvents.commandRegistry(event =>{
             return 1
         }))))
     )
+})
+
+//雪莉的魔法
+//雪莉的其它方块操作实现见player_behaviour部分
+ServerEvents.tick(event =>{
+    let majo = findMajo("橘雪莉")
+    let player = majo.player
+    if (!player){return 0}
+    let server = event.server
+    let block = player.rayTrace().block
+    if (player.miningBlock && isMajoProgressing && block){
+        for (let allowed of global.breakableBlockList.concat(global.sherriBlockList)){
+            if (block.id == allowed || block.hasTag(allowed)){
+                server.runCommandSilent("/setblock "+block.x+" "+block.y+" "+block.z+" air destroy")
+                break
+            }
+        }
+        if (player.sprinting){
+            let pos = [(3*block.x+player.eyePosition.x())/4,(block.y+player.eyePosition.y())/2,(3*block.z+player.eyePosition.z())/4]
+            server.runCommandSilent("/particle minecraft:campfire_signal_smoke "+pos[0]+" "+pos[1]+" "+pos[2]+" 0 0 0 0.2 50 force")
+            server.runCommandSilent("playsound minecraft:entity.generic.explode voice @a "+pos[0]+" "+pos[1]+" "+pos[2]+" 0.5 0.8")
+            if (block.hasTag("minecraft:doors")){
+                block.setBlockState(block.blockState.setValue($DoorBlock.OPEN,$Boolean.TRUE),3)
+            }
+            player.setSprinting(false)
+            player.stages.add("sheriiExhausted")
+        }
+    }
+    if (player.stages.has("sheriiExhausted")){
+        if (!player.sprinting){
+            player.stages.remove("sheriiExhausted")
+        }
+        player.potionEffects.add("minecraft:slowness",10,255,false,false)
+    }
+})
+
+EntityEvents.beforeHurt(event =>{
+    let source = event.source
+    let player = source.player
+    if (!player){return 0}
+    let majo = isMajoPlayer(player)
+    if (!majo){return 0}
+    if (majo.name != "橘雪莉"){return 0}
+    let server = event.server
+    if (!player.sprinting){
+        server.runCommandSilent("/attribute "+player.name.string+" minecraft:generic.attack_knockback base set 0")
+        return 0
+    }
+    else {
+        if (source.weaponItem.is("air")){
+            let entity = event.entity
+            let pos = [(3*entity.eyePosition.x()+player.eyePosition.x())/4,(entity.eyePosition.y()+player.eyePosition.y())/2,(3*entity.eyePosition.z()+player.eyePosition.z())/4]
+            server.runCommandSilent("/attribute "+player.name.string+" minecraft:generic.attack_knockback base set "+sheriiKnockBackBoost)
+            server.runCommandSilent("/playsound minecraft:entity.generic.explode voice @a "+pos[0]+" "+pos[1]+" "+pos[2]+" 0.5 0.8")
+            server.runCommandSilent("/particle minecraft:campfire_signal_smoke "+pos[0]+" "+pos[1]+" "+pos[2]+" 0 0 0 0.2 50 force")
+            player.stages.add("sheriiExhausted")
+        }
+        if (isMajoProgressing){
+            event.setDamage(event.getDamage()+sheriiDamageBoost)
+        }
+    }
 })

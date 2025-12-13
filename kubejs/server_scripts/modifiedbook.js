@@ -7,6 +7,7 @@ const charOfPage = 266 //书页上限字符量
 const pagesOfBook = 100 //最大书页数
 const writingDiaryTimePause = 40 //书写一条日志的间隔
 const translateInfoPlace = "图书室" //可提供破译资料的位置
+const decipherChance = 6 //默认的破译机会
 
 //日记
 //开始回想
@@ -105,7 +106,7 @@ PlayerEvents.tick(event =>{
         return 0
     }
     else {
-        server.runCommandSilent("/item replace entity "+player.name.string+" weapon.offhand with "+newBook)
+        player.setOffHandItem(newBook)
         server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound exposure:misc.write voice @s")
         majo.memorableLog.splice(0,1)
         let logRemain = majo.memorableLog.length
@@ -211,7 +212,7 @@ ItemEvents.rightClicked("minecraft:written_book",event =>{
         }
         logString = String(logString)
         let newBook = writeBookPage(item,logString,true)
-        server.runCommandSilent("/item replace entity "+player.name.string+" weapon.mainhand with "+newBook)
+        player.setMainHandItem(newBook)
         server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound exposure:misc.write voice @s")
         player.tell({"text":"已读取日志。","color":"green"})
         item = player.getMainHandItem()
@@ -251,7 +252,7 @@ ItemEvents.firstLeftClicked("minecraft:written_book",event =>{
 //翻译书籍
 ServerEvents.commandRegistry(event =>{
     let {arguments:arg,commands:cmd} = event
-    function translateTo(player,book,language,replace,server){
+    function translateTo(player,book,language,replace){
         let op = isOperator(player)
         if (!op){
             player.tell({"text":"无权使用。","color":"red"})
@@ -273,11 +274,11 @@ ServerEvents.commandRegistry(event =>{
         else {
             if (!replace){
                 player.tell({"text":"转译完成。","color":"green"})
-                server.runCommandSilent("/give "+player.name.string+" "+newBook)
+                player.addItem(newBook)
             }
             else {
                 player.tell({"text":"转译完成。","color":"green"})
-                server.runCommandSilent("/item replace entity "+player.name.string+" weapon.mainhand with "+newBook)
+                player.setMainHandItem(newBook)
             }
         }
     }
@@ -288,8 +289,7 @@ ServerEvents.commandRegistry(event =>{
             let player = cmd.source.playerOrException
             let book = player.getMainHandItem()
             let language = arg.STRING.getResult(cmd,'language')
-            let server = cmd.source.server
-            translateTo(player,book,language,false,server)
+            translateTo(player,book,language,false)
             return 1
         })
         .then(cmd.argument('replace',arg.BOOLEAN.create(event))
@@ -298,8 +298,7 @@ ServerEvents.commandRegistry(event =>{
             let book = player.getMainHandItem()
             let language = arg.STRING.getResult(cmd,'language')
             let replace = arg.BOOLEAN.getResult(cmd,'replace')
-            let server = cmd.source.server
-            translateTo(player,book,language,replace,server)
+            translateTo(player,book,language,replace)
             return 1
         })))
     )
@@ -365,10 +364,10 @@ ItemEvents.rightClicked("minecraft:writable_book",event =>{
         majo.decipher["decipherBook"] = getItemStringRepresent(book)
         majo.decipher["target"] = queryValue
         majo.decipher["answer"] = queryKey
-        majo.decipher["tryLeft"] = 6
+        majo.decipher["tryLeft"] = decipherChance
         majo.decipher["try"] = []
         if (majo.name == "宝生玛格"){
-            majo.decipher["tryLeft"] = 7
+            majo.decipher["tryLeft"] = decipherChance+1
         }
         player.stages.add("Decipher")
         player.tell({"text":"你搜罗了一些资料，开始尝试破译……","color":"yellow"})
@@ -406,9 +405,24 @@ function tryDeciphering(majo,guess,server){
                 "char":guessChar,
                 "result":"CORRECT"
             })
+            let match = answer.match(new RegExp(guessChar,"g"))
+            let alreadyMatch = 0
+            for (let result of guessResult){
+                if (result["char"] == guessChar && (result["result"] == "CORRECT" || result["result"] == "CONTAIN")){
+                    alreadyMatch ++
+                }
+            }
+            if (alreadyMatch > match.length){
+                for (let result of guessResult){
+                    if (result["char"] == guessChar && result["result"] == "CONTAIN"){
+                        result["result"] = "WRONG"
+                        break
+                    }
+                }
+            }
         }
         else {
-            let match = answer.match(new RegExp(guessChar))
+            let match = answer.match(new RegExp(guessChar,"g"))
             if (!match){
                 guessResult.push({
                     "char":guessChar,
@@ -458,16 +472,21 @@ function tryDeciphering(majo,guess,server){
     printDecipherTry(majo)
     if (allCorrect >= answer.length){
         player.stages.remove("Decipher")
-        player.tell({"text":"破译成功了！","color":"green"})
-        server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound minecraft:block.note_block.bell voice @s")
-        let newKey = "\n\""+majo.decipher["answer"]+"\":\""+majo.decipher["target"]+"\""
+        server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound sound_effect:crack_01 voice @s")
+        let newKey = "\n'"+majo.decipher["answer"]+"':'"+majo.decipher["target"]+"'"
         let newBook = writeBookPage(book,newKey,false)
-        if (!newBook){
-            player.tell({"text":"已经知道了新的正确匹配「"+newKey+"」,但是笔记本已经写不下了……","color":"yellow"})
-        }
-        else {
-            server.runCommandSilent("/item replace entity "+player.name.string+" weapon.offhand with "+newBook)
-        }
+        server.scheduleInTicks(10,event =>{
+            player.tell({"text":"破译成功了！","color":"green"})
+            server.runCommandSilent("/execute as "+player.name.string+" at @s run playsound sound_effect:crack_02 voice @s")
+            if (!newBook){
+                player.tell({"text":"已经知道了新的正确匹配「"+newKey+"」,但是笔记本已经写不下了……","color":"yellow"})
+            }
+            else {
+                console.log(newBook)
+                player.setOffHandItem(newBook)
+            }
+        })
+        return 1
     }
     if (majo.decipher["tryLeft"] <= 0){
         player.stages.remove("Decipher")
@@ -490,33 +509,30 @@ function printDecipherTry(majo){
 
 //译本阅读
 ItemEvents.rightClicked("minecraft:written_book",event =>{
-    if (!isMajoProgressing){return 0}
     tryTranslating(event)
 })
 
 ItemEvents.rightClicked("minecraft:writable_book",event =>{
-    if (!isMajoProgressing){return 0}
     tryTranslating(event)
 })
 
 function tryTranslating(event){
     let player = event.player
-    let server = event.server
     let mainBook = player.getMainHandItem()
     if (!mainBook.is("minecraft:writable_book") && !mainBook.is("minecraft:written_book")){return 0}
-    if (mainBook.customData.getString("TransferToType") == "TRANSLATE"){
-        player.tell({"text":"这好像也是一份译本……","color":"yellow"})
-        return 0
-    }
     let offBook = player.getOffHandItem()
     if (offBook.customData.getString("TransferToType") != "TRANSLATE"){
         if (mainBook.customData.getBoolean("Translated")){
             let originalVersion = mainBook.customData.getString("OriginalVersion")
             if (!originalVersion){return 0}
-            server.runCommandSilent("/item replace entity "+player.name.string+" weapon.mainhand with "+originalVersion)
+            player.setMainHandItem(originalVersion)
             mainBook = player.getMainHandItem()
             mainBook.setCustomData(mainBook.customData.merge({"Translated":false,"OriginalVersion":''}))
         }
+        return 0
+    }
+    if (mainBook.customData.getString("TransferToType") == "TRANSLATE"){
+        player.tell({"text":"这好像也是一份译本……","color":"yellow"})
         return 0
     }
     let translateDict = readTranslateKeys(offBook)
@@ -530,7 +546,7 @@ function tryTranslating(event){
         if (!originalVersion){
             originalVersion = getItemStringRepresent(mainBook)
         }
-        server.runCommandSilent("/item replace entity "+player.name.string+" weapon.mainhand with "+newMainBook)
+        player.setMainHandItem(newMainBook)
         mainBook = player.getMainHandItem()
         mainBook.setCustomData(mainBook.customData.merge({"Translated":true,"OriginalVersion":originalVersion}))
     }
@@ -590,27 +606,27 @@ function translate(book,toLanguage,keyWords){
                     if (!keys.length){
                         for (let keyWord of global.lojDictKeys){
                             let regex = new RegExp('\\b'+keyWord+'\\s+',"g")
-                            text = text.replace(regex,match => global.lojDict[keyWord] || match)
+                            text = text.replace(regex,match => global.lojDict[keyWord])
                         }
                     }
                     else {
                         for (let keyWord of keys){
                             let regex = new RegExp('\\b'+keyWord+'\\s+',"g")
-                            text = text.replace(regex,match => keyWords[keyWord] || match)
+                            text = text.replace(regex,match => keyWords[keyWord])
                         }
                     }
                 }
                 else if (toLanguage == "lojban"){
                     if (!keys.length){
                         for (let keyWord of Object.keys(global.lojDictReverse)){
-                            let regex = new RegExp(`\\b(${keyWord})\\b`,"g")
-                            text = text.replace(regex,match => global.lojDictReverse[match]+' ' || match)
+                            let regex = new RegExp(keyWord,"g")
+                            text = text.replace(regex,match => global.lojDictReverse[keyWord]+' ')
                         }
                     }
                     else {
                         for (let keyWord of keys){
-                            let regex = new RegExp(`\\b(${keyWord})\\b`,"g")
-                            text = text.replace(regex,match => keyWords[match]+' ' || match)  
+                            let regex = new RegExp(keyWord,"g")
+                            text = text.replace(regex,match => keyWords[keyWord]+' ')  
                         }
                     }
                 }
@@ -661,11 +677,11 @@ function readTranslateKeys(book){
                 }
                 text += newText
             }
-            let rawKeys = text.match(/["“][^"“”]+["”][:：]["“][^"“”]+["”]/g)
+            let rawKeys = text.match(/["“'‘][^"“”‘’']+["”'’][:：]["“'‘][^"“”‘’']+["”'’]/g)
             if (!rawKeys){return null}
             let rawDict = {}
             for (let rawKey of rawKeys){
-                let match = rawKey.match(/["“][^"“”]+["”]/g)
+                let match = rawKey.match(/["“'‘][^"“”‘’']+["”'’]/g)
                 let key = String(match[0]).slice(1,-1)
                 let value = String(match[1]).slice(1,-1)
                 rawDict[key] = value
